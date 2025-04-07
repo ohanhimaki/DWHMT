@@ -1,0 +1,116 @@
+﻿@page "/"
+@using MudBlazor
+@using System.Text.RegularExpressions
+
+@inject AppStateService AppState
+@inject NavigationManager NavigationManager
+
+<h1>Input Source Data</h1>
+
+<MudText>Paste your source metadata here (tab-separated columns, first row headers: TableName, ColumnName, ExampleData, RowCount, UniqueCount, NullCount):</MudText>
+<MudTextField @bind-Value="pastedText" Lines="10" Variant="Variant.Outlined" Class="mb-4" />
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProcessSourceData">Process Source Data</MudButton>
+
+@if (sourceColumns.Any())
+{
+    <MudText Typo="Typo.subtitle1" Class="mt-4">Processed @sourceColumns.Count columns.</MudText>
+}
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
+}
+
+@code {
+    private string pastedText { get; set; } = "";
+    private List<SourceColumnInfo> sourceColumns { get; set; } = new List<SourceColumnInfo>();
+    private string errorMessage { get; set; }
+
+
+    private async Task ProcessSourceData()
+    {
+        sourceColumns.Clear();
+        errorMessage = null;
+
+        if (!string.IsNullOrWhiteSpace(pastedText))
+        {
+            var lines = pastedText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (lines.Length > 1)
+            {
+                var headers = lines[0].Split('\t').Select(h => h.Trim()).ToList();
+                var expectedHeaders = new[] { "TableName", "ColumnName", "ExampleData", "RowCount", "UniqueCount", "NullCount" };
+
+                if (!expectedHeaders.All(h => headers.Contains(h, StringComparer.OrdinalIgnoreCase)))
+                {
+                    errorMessage = $"Invalid headers. Expected at least: {string.Join(", ", expectedHeaders)} (case-insensitive). Found: {string.Join(", ", headers)}";
+                    return;
+                }
+
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    var values = lines[i].Split('\t');
+                    if (values.Length == headers.Count)
+                    {
+                        var columnInfo = new SourceColumnInfo();
+                        try
+                        {
+                            columnInfo.TableName = GetValue(headers, values, "TableName");
+                            columnInfo.ColumnName = GetValue(headers, values, "ColumnName");
+                            columnInfo.ExampleData = GetValue(headers, values, "ExampleData");
+                            if (int.TryParse(GetValue(headers, values, "RowCount"), out var rowCount))
+                                columnInfo.RowCount = rowCount;
+                            if (int.TryParse(GetValue(headers, values, "UniqueCount"), out var uniqueCount))
+                                columnInfo.UniqueCount = uniqueCount;
+                            if (int.TryParse(GetValue(headers, values, "NullCount"), out var nullCount))
+                                columnInfo.NullCount = nullCount;
+
+                            sourceColumns.Add(columnInfo);
+                        }
+                        catch (Exception ex)
+                        {
+                            errorMessage = $"Error parsing row {i + 1}: {ex.Message}";
+                            sourceColumns.Clear();
+                            return;
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(lines[i]))
+                    {
+                        errorMessage = $"Row {i + 1} has an incorrect number of columns. Expected {headers.Count}, found {values.Length}.";
+                        sourceColumns.Clear();
+                        return;
+                    }
+                }
+            }
+            else if (lines.Length == 1 && !string.IsNullOrWhiteSpace(lines[0]))
+            {
+                errorMessage = "Missing data rows. Please include at least one row of data below the headers.";
+            }
+            else
+            {
+                errorMessage = "No data pasted.";
+            }
+        }
+        else
+        {
+            errorMessage = "Please paste source data.";
+        }
+
+        if (string.IsNullOrEmpty(errorMessage) && sourceColumns.Any())
+        {
+            AppState.SourceTables = sourceColumns
+                .GroupBy(c => c.TableName)
+                .Select(g => new SourceTable { TableName = g.Key, Columns = g.ToList() })
+                .ToList();
+
+            await AppState.SaveSourceTablesToLocalStorage();
+            NavigationManager.NavigateTo("/viewsourcedata");
+        }
+    }
+
+    private string GetValue(List<string> headers, string[] values, string headerName)
+    {
+        var index = headers.FindIndex(h => h.Equals(headerName, StringComparison.OrdinalIgnoreCase));
+        return index >= 0 && index < values.Length ? values[index]?.Trim() : null;
+    }
+}

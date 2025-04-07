@@ -1,0 +1,57 @@
+﻿@page "/viewsourcedata"
+@using MudBlazor
+@inject AppStateService AppState
+
+<h1>Source Tables and Columns</h1>
+
+@if (sourceTables.Any())
+{
+    @foreach (var table in sourceTables)
+    {
+        <MudExpansionPanel Text="@table.TableName" IsInitiallyExpanded="true">
+            <MudTable Items="@table.Columns" Hover="true" Bordered="true">
+                <HeaderContent>
+                    <MudTh>Column Name</MudTh>
+                    <MudTh>Example Data</MudTh>
+                    <MudTh>Row Count</MudTh>
+                    <MudTh>Unique Count</MudTh>
+                    <MudTh>Null Count</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.ColumnName</MudTd>
+                    <MudTd>@context.ExampleData</MudTd>
+                    <MudTd>@context.RowCount</MudTd>
+                    <MudTd>@context.UniqueCount</MudTd>
+                    <MudTd>@context.NullCount</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudExpansionPanel>
+    }
+}
+else
+{
+    <MudText>No source data has been processed yet. Please go to the <MudLink Href="/inputsource">Input Source Data</MudLink> page.</MudText>
+}
+
+@code {
+    private List<SourceTable> sourceTables = new List<SourceTable>();
+
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    protected override void OnInitialized()
+    {
+        sourceTables = AppState.SourceTables;
+    }
+
+    // **Simple static variable for demonstration purposes - NOT recommended for production**
+    public static class InputSourceData
+    {
+        public static List<SourceColumnInfo> ProcessedColumns { get; set; } = new List<SourceColumnInfo>();
+    }
+
+    // Modify ProcessSourceData in InputSourceData.razor to populate this static variable
+    // ... inside the ProcessSourceData method in InputSourceData.razor:
+    // InputSourceData.ProcessedColumns = sourceColumns;
+}
