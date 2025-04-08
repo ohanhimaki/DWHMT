@@ -40,9 +40,11 @@ else
     [Inject]
     private NavigationManager NavigationManager { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await AppState.LoadDataFromLocalStorage();
         sourceTables = AppState.SourceTables;
+        await base.OnInitializedAsync();
     }
 
     // **Simple static variable for demonstration purposes - NOT recommended for production**

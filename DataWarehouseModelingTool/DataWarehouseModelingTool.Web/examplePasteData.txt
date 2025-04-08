@@ -1,0 +1,10 @@
+﻿TableName	ColumnName	ExampleData	RowCount	UniqueCount	NullCount
+users	user_id	1,2,3,4,5	100	100	0
+users	name	John,Jane,Peter	100	95	5
+users	email	john@example.com,jane@test.org	100	90	10
+orders	order_id	101,102,103	500	500	0
+orders	user_id	1,2,3,4,5	500	80	0
+orders	order_date	2024-01-01,2024-01-05	500	365	0
+products	product_id	A1,B2,C3	50	50	0
+products	product_name	Laptop,Keyboard,Mouse	50	48	2
+products	category	Electronics,Accessories	50	3	0
