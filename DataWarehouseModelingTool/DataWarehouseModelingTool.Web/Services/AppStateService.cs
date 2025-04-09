@@ -87,4 +87,38 @@ public async Task DownloadStateAsJson()
             SourceTables = JsonSerializer.Deserialize<List<SourceTable>>(storedSourceTables) ?? new List<SourceTable>();
         }
     }
+
+    public async Task MergeSourceTables(List<SourceTable> processedTables)
+    {
+        // Merge the processed tables into the existing SourceTables list
+        foreach (var processedTable in processedTables)
+        {
+            var existingTable = SourceTables.FirstOrDefault(t => t.TableName == processedTable.TableName);
+            if (existingTable != null)
+            {
+                foreach (var processedTableColumn in processedTable.Columns)
+                {
+                    var existingColumn = existingTable.Columns.FirstOrDefault(c => c.ColumnName == processedTableColumn.ColumnName);
+                    if (existingColumn != null)
+                    {
+                        existingColumn.Merge(processedTableColumn);
+                    }
+                    else
+                    {
+                        // Add new column to the existing table
+                        existingTable.Columns.Add(processedTableColumn);
+                    }
+                    
+                }
+
+            }
+            else
+            {
+                // Add new table
+                SourceTables.Add(processedTable);
+            }
+        }
+
+        await SaveSourceTablesToLocalStorage();
+    }
 }

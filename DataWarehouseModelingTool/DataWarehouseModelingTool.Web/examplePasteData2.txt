@@ -1,0 +1,25 @@
+﻿TableName	ColumnName	ExampleData	RowCount	UniqueCount	NullCount	Description	DataQualityScore
+users	user_id	1,2,3,4,5	100	100	0	Unique identifier for each user	0.95
+users	name	John,Jane,Peter	100	95	5	Full name of the user	0.98
+users	email	john@example.com,jane@test.org	100	90	10	User's email address	0.92
+users	registration_date	2023-01-15,2023-02-20	100	85	0	Date when the user registered	1
+users	city	New York,London,Paris	100	30	15	User's city of residence	0.88
+orders	order_id	101,102,103	500	500	0	Unique identifier for each order	0.99
+orders	user_id	1,2,3,4,5	500	80	0	Foreign key referencing users table	1
+orders	order_date	2024-01-01,2024-01-05	500	365	0	Date when the order was placed	1
+orders	total_amount	25.50,100.75,50.00	500	250	0	Total amount of the order	0.97
+orders	shipping_address	123 Main St,456 Oak Ave	480	400	20	Shipping address for the order	0.90
+products	product_id	A1,B2,C3	50	50	0	Unique identifier for each product	0.99
+products	product_name	Laptop,Keyboard,Mouse	50	48	2	Name of the product	0.98
+products	category	Electronics,Accessories	50	3	0	Category of the product	1
+products	price	1200.00,75.00,25.00	50	30	0	Price of the product	0.99
+products	supplier_id	S1,S2	50	2	0	Identifier of the product supplier	1
+order_items	order_item_id	OI1,OI2,OI3	1000	1000	0	Unique identifier for each item in an order	1
+order_items	order_id	101,102,103	1000	500	0	Foreign key referencing orders table	1
+order_items	product_id	A1,B2,C3	1000	50	0	Foreign key referencing products table	1
+order_items	quantity	1,2,3,1	1000	5	0	Quantity of the product in the order item	1
+customer_reviews	review_id	R1,R2,R3	200	200	0	Unique identifier for each review	1
+customer_reviews	user_id	1,2,3,6,7	200	90	0	Foreign key referencing users table	1
+customer_reviews	product_id	A1,B2,C4	200	45	0	Foreign key referencing products table	1
+customer_reviews	rating	5,4,3,5	200	5	0	Rating given by the user (1-5)	1
+customer_reviews	review_date	2024-03-01,2024-03-15	200	150	0	Date when the review was submitted	1

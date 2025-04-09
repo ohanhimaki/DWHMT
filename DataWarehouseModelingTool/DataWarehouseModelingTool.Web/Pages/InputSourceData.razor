@@ -1,27 +1,45 @@
-﻿@page "/inputsource"
-@using MudBlazor
+﻿@using MudBlazor
 @using System.Text.RegularExpressions
 
 @inject AppStateService AppState
 @inject NavigationManager NavigationManager
 
-<h1>Input Source Data</h1>
+<MudDialog>
+    <TitleContent>Input Source Data</TitleContent>
+    <DialogContent>
 
-<MudText>Paste your source metadata here (tab-separated columns, first row headers: TableName, ColumnName, ExampleData, RowCount, UniqueCount, NullCount):</MudText>
-<MudTextField @bind-Value="pastedText" Lines="10" Variant="Variant.Outlined" Class="mb-4" />
+        <MudText>Paste your source metadata here (tab-separated columns, first row headers: TableName, ColumnName, ExampleData, RowCount, UniqueCount, NullCount):</MudText>
+        <MudTextField @bind-Value="pastedText" Lines="10" Variant="Variant.Outlined" Class="mb-4"/>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProcessSourceData">Process Source Data</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProcessSourceData">Process Source Data</MudButton>
 
-@if (sourceColumns.Any())
-{
-    <MudText Typo="Typo.subtitle1" Class="mt-4">Processed @sourceColumns.Count columns.</MudText>
-}
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
-}
+        @if (sourceColumns.Any())
+        {
+            <MudText Typo="Typo.subtitle1" Class="mt-4">Processed @sourceColumns.Count columns.</MudText>
+        }
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
+        }
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="ProcessSourceData">Process</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    // [Parameter] public EventCallback<List<SourceTable>> OnDataProcessed { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
     private string pastedText { get; set; } = "";
     private List<SourceColumnInfo> sourceColumns { get; set; } = new List<SourceColumnInfo>();
     private string errorMessage { get; set; }
@@ -98,13 +116,13 @@
 
         if (string.IsNullOrEmpty(errorMessage) && sourceColumns.Any())
         {
-            AppState.SourceTables = sourceColumns
-                .GroupBy(c => c.TableName)
-                .Select(g => new SourceTable { TableName = g.Key, Columns = g.ToList() })
-                .ToList();
-
-            await AppState.SaveSourceTablesToLocalStorage();
-            NavigationManager.NavigateTo("/viewsourcedata");
+            var sourceTables = sourceColumns
+            .GroupBy(c => c.TableName)
+            .Select(g => new SourceTable { TableName = g.Key, Columns = g.ToList() })
+            .ToList();
+            // await OnDataProcessed.InvokeAsync(sourceTables);
+            MudDialog.Close(sourceTables);
+            
         }
     }
 
@@ -113,4 +131,5 @@
         var index = headers.FindIndex(h => h.Equals(headerName, StringComparison.OrdinalIgnoreCase));
         return index >= 0 && index < values.Length ? values[index]?.Trim() : null;
     }
+
 }

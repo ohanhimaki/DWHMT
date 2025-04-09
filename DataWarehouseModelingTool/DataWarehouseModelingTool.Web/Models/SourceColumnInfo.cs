@@ -14,4 +14,15 @@ public class SourceColumnInfo
     public string? Comment { get; set; } // For user notes
     public bool IsSourceSystemKey { get; set; } = false; // To mark source system keys
     public bool IsPrimaryKey { get; set; } = false; // To mark potential primary keys in source
+
+    public void Merge(SourceColumnInfo processedTableColumn)
+    {
+        if (processedTableColumn == null) return;
+
+        ExampleData = processedTableColumn.ExampleData;
+        RowCount = processedTableColumn.RowCount;
+        UniqueCount = processedTableColumn.UniqueCount;
+        NullCount = processedTableColumn.NullCount;
+        
+    }
 }

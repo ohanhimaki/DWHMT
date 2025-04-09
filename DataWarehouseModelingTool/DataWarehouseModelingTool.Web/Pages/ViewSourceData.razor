@@ -1,12 +1,17 @@
-﻿@page "/viewsourcedata"
+﻿@page "/viewsource"
 @using MudBlazor
+@inject IDialogService DialogService
 @inject AppStateService AppState
 
-<h1>Source Tables and Columns</h1>
+<h1>Source Data</h1>
 
-@if (sourceTables.Any())
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenInputDialog">
+    <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-1" /> Input Source Data
+</MudButton>
+
+@if (AppState.SourceTables.Any())
 {
-    @foreach (var table in sourceTables)
+    @foreach (var table in AppState.SourceTables)
     {
         <MudExpansionPanel Text="@table.TableName" IsInitiallyExpanded="true">
             <MudTable Items="@table.Columns" Hover="true" Bordered="true">
@@ -30,30 +35,26 @@
 }
 else
 {
-    <MudText>No source data has been processed yet. Please go to the <MudLink Href="/inputsource">Input Source Data</MudLink> page.</MudText>
+    <MudText>No source data loaded. Click the 'Input Source Data' button to begin.</MudText>
 }
 
 @code {
-    private List<SourceTable> sourceTables = new List<SourceTable>();
-
-
-    [Inject]
-    private NavigationManager NavigationManager { get; set; }
-
-    protected override async Task OnInitializedAsync()
+    private async Task OpenInputDialog()
     {
-        await AppState.LoadDataFromLocalStorage();
-        sourceTables = AppState.SourceTables;
-        await base.OnInitializedAsync();
+        var dialog = await DialogService.ShowAsync<InputSourceData>("Input Source Data",
+            
+            new DialogOptions { CloseOnEscapeKey = true, BackdropClick = false }
+            );
+        
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            if (result.Data is List<SourceTable> processedTables)
+            {
+                await AppState.MergeSourceTables(processedTables);// SourceTables = processedTables;
+                StateHasChanged(); // Refresh the UI
+            }
+        }
     }
-
-    // **Simple static variable for demonstration purposes - NOT recommended for production**
-    public static class InputSourceData
-    {
-        public static List<SourceColumnInfo> ProcessedColumns { get; set; } = new List<SourceColumnInfo>();
-    }
-
-    // Modify ProcessSourceData in InputSourceData.razor to populate this static variable
-    // ... inside the ProcessSourceData method in InputSourceData.razor:
-    // InputSourceData.ProcessedColumns = sourceColumns;
 }
