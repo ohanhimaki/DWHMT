@@ -9,34 +9,39 @@
     <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-1" /> Input Source Data
 </MudButton>
 
-@if (AppState.SourceTables.Any())
-{
-    @foreach (var table in AppState.SourceTables)
-    {
-        <MudExpansionPanel Text="@table.TableName" IsInitiallyExpanded="true">
-            <MudTable Items="@table.Columns" Hover="true" Bordered="true">
-                <HeaderContent>
-                    <MudTh>Column Name</MudTh>
-                    <MudTh>Example Data</MudTh>
-                    <MudTh>Row Count</MudTh>
-                    <MudTh>Unique Count</MudTh>
-                    <MudTh>Null Count</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.ColumnName</MudTd>
-                    <MudTd>@context.ExampleData</MudTd>
-                    <MudTd>@context.RowCount</MudTd>
-                    <MudTd>@context.UniqueCount</MudTd>
-                    <MudTd>@context.NullCount</MudTd>
-                </RowTemplate>
-            </MudTable>
-        </MudExpansionPanel>
-    }
-}
-else
-{
-    <MudText>No source data loaded. Click the 'Input Source Data' button to begin.</MudText>
-}
+<MudButton OnClick="AppState.SaveSourceTablesToLocalStorage"> tallenna</MudButton>
+
+
+<MudTable Items="@AppState.SourceTables" Hover="true" Bordered="true">
+    <HeaderContent>
+        <MudTh >Table/Column Name</MudTh>
+        <MudTh>Example Data</MudTh>
+        <MudTh>Row Count</MudTh>
+        <MudTh>Unique Count</MudTh>
+        <MudTh>Null Count</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Table Name">@context.TableName</MudTd>
+        <MudTd DataLabel="Comment" colspan="5">
+            <MudTextField @bind-Value="@context.Comment" Variant="Variant.Outlined" Size="Size.Small"
+                          Lines="1"/>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent >
+        
+        
+            @foreach (var column in context.Columns)
+            {
+                <MudTr>
+                    <MudTd DataLabel="Column Name" Style="width: 20%;">@column.ColumnName</MudTd>
+                    <MudTd DataLabel="Example Data">@column.ExampleData</MudTd>
+                    <MudTd DataLabel="Row Count">@column.RowCount</MudTd>
+                    <MudTd DataLabel="Unique Count">@column.UniqueCount</MudTd>
+                    <MudTd DataLabel="Null Count">@column.NullCount</MudTd>
+                </MudTr>
+            }
+    </ChildRowContent>
+</MudTable>
 
 @code {
     private async Task OpenInputDialog()
