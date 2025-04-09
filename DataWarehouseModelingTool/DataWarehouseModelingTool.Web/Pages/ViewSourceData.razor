@@ -1,4 +1,5 @@
 ﻿@page "/viewsource"
+@using System.Collections.ObjectModel
 @using MudBlazor
 @inject IDialogService DialogService
 @inject AppStateService AppState
@@ -6,13 +7,15 @@
 <h1>Source Data</h1>
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenInputDialog">
-    <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-1" /> Input Source Data
+    <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-1"/> Input Source Data
 </MudButton>
 
 <MudButton OnClick="AppState.SaveSourceTablesToLocalStorage"> tallenna</MudButton>
 
 
-<MudTable Items="@AppState.SourceTables" Hover="true" Bordered="true">
+<MudButton Variant="Variant.Outlined" OnClick="OpenColumnFilterDialog" Class="mb-2">Filter Columns</MudButton>
+
+<MudTable Items="@FilteredSourceTables" Hover="true" Bordered="true">
     <HeaderContent>
         <MudTh >Table/Column Name</MudTh>
         <MudTh>Example Data</MudTh>
@@ -21,15 +24,19 @@
         <MudTh>Null Count</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Table Name">@context.TableName</MudTd>
+        <MudTd DataLabel="Table Name">
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small"
+                           @onclick="@(() => ToggleExpand(context))"/>
+            @context.TableName
+        </MudTd>
         <MudTd DataLabel="Comment" colspan="5">
             <MudTextField @bind-Value="@context.Comment" Variant="Variant.Outlined" Size="Size.Small"
                           Lines="1"/>
         </MudTd>
     </RowTemplate>
     <ChildRowContent >
-        
-        
+        @if (expandedTables.Contains(context))
+        {
             @foreach (var column in context.Columns)
             {
                 <MudTr>
@@ -40,26 +47,80 @@
                     <MudTd DataLabel="Null Count">@column.NullCount</MudTd>
                 </MudTr>
             }
+        }
     </ChildRowContent>
 </MudTable>
 
 @code {
+    private HashSet<SourceTable> expandedTables = new HashSet<SourceTable>();
+    private Dictionary<string, int> columnCounts = new Dictionary<string, int>();
+    private IReadOnlyCollection<string> selectedColumnNames = new List<string>();
+    private string columnFilter = "";
+
+    private List<SourceTable> FilteredSourceTables => AppState.SourceTables
+        .Where(table => selectedColumnNames.Count == 0 ||  table.Columns.Any(x => selectedColumnNames.Contains(x.ColumnName))) // Only show tables with selected columns
+        .ToList();
+
     private async Task OpenInputDialog()
     {
         var dialog = await DialogService.ShowAsync<InputSourceData>("Input Source Data",
-            
             new DialogOptions { CloseOnEscapeKey = true, BackdropClick = false }
-            );
-        
+        );
+
         var result = await dialog.Result;
-        
+
         if (!result.Canceled)
         {
             if (result.Data is List<SourceTable> processedTables)
             {
-                await AppState.MergeSourceTables(processedTables);// SourceTables = processedTables;
+                await AppState.MergeSourceTables(processedTables); // SourceTables = processedTables;
                 StateHasChanged(); // Refresh the UI
             }
         }
     }
+
+    private void ToggleExpand(SourceTable table)
+    {
+        if (expandedTables.Contains(table))
+        {
+            expandedTables.Remove(table);
+        }
+        else
+        {
+            expandedTables.Add(table);
+        }
+    }
+
+    private async Task OpenColumnFilterDialog()
+    {
+        var columnCounts = AppState.SourceTables
+            .SelectMany(t => t.Columns)
+            .GroupBy(c => c.ColumnName)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var dialog = await DialogService.ShowAsync<ColumnFilterDialog>("Filter Columns", new DialogParameters
+        {
+            { "ColumnCounts", columnCounts },
+            { "InitialSelectedColumns", selectedColumnNames },
+            { "OnFilterApplied", EventCallback.Factory.Create<IReadOnlyCollection<string>>(this, OnColumnFilterApplied) }
+        }, new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            BackdropClick = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        });
+
+        var result = await dialog.Result;
+    }
+
+    private void OnColumnFilterApplied(IReadOnlyCollection<string> selectedColumns)
+    {
+        selectedColumnNames = selectedColumns;
+        StateHasChanged();
+
+        var test = FilteredSourceTables;
+        var dbugCount = test.Count();
+        
+    }
+
 }

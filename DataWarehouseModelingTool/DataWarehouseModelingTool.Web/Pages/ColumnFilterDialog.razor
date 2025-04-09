@@ -1,0 +1,74 @@
+﻿
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Filter by Column Name</MudText>
+        <MudRadioGroup @bind-Value="SortOrder" Class="mb-2">
+            <MudRadio Value="SortByType.Name">Sort by Name</MudRadio>
+            <MudRadio Value="SortByType.Count">Sort by Table Count</MudRadio>
+        </MudRadioGroup>
+
+        <MudList  @bind-SelectedValues="SelectedColumns" SelectionMode="SelectionMode.MultiSelection">
+            @foreach (var (columnName,value) in SortedColumnNames)
+            {
+                <MudListItem Text="@columnName" Value="value"/>
+            }
+        </MudList>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="ApplyFilter">Apply</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public Dictionary<string, int> ColumnCounts { get; set; }
+    [Parameter] public List<string> InitialSelectedColumns { get; set; }
+    [Parameter] public EventCallback<IReadOnlyCollection<string>> OnFilterApplied { get; set; }
+
+    private IReadOnlyCollection<string> SelectedColumns { get; set; } = new List<string>();
+    private SortByType SortOrder { get; set; } = SortByType.Name;
+
+    private List<(string,string)> SortedColumnNames
+    {
+        get
+        {
+            if (SortOrder == SortByType.Name)
+            {
+                return ColumnCounts.OrderBy(n => n.Key).Select(x => (x.Key + " " + x.Value, x.Key)).ToList();
+            }
+            else // SortByType.Count
+            {
+                return ColumnCounts.OrderByDescending(n => n.Value).Select(x => (x.Key + " " + x.Value, x.Key)).ToList();
+            }
+        }
+    }
+
+    
+    
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task ApplyFilter()
+    {
+        await OnFilterApplied.InvokeAsync(SelectedColumns);
+        MudDialog.Close();
+    }
+
+    private enum SortByType
+    {
+        Name,
+        Count
+    }
+
+    private void SortOrderChanged(SortByType obj)
+    {
+        SortOrder = obj;
+    }
+
+}
