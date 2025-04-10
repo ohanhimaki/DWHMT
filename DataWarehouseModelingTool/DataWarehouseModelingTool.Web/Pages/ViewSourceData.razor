@@ -15,13 +15,20 @@
 
 <MudButton Variant="Variant.Outlined" OnClick="OpenColumnFilterDialog" Class="mb-2">Filter Columns</MudButton>
 
-<MudTable Items="@FilteredSourceTables" Hover="true" Bordered="true">
+<MudTable Items="@FilteredSourceTables" Hover="true" Bordered="true"
+          >
     <HeaderContent>
-        <MudTh >Table/Column Name</MudTh>
+        <MudTh >
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small"
+                           @onclick="@(() => ToggleExpandAll())"/>
+            Table/Column Name
+        </MudTh>
         <MudTh>Example Data</MudTh>
         <MudTh>Row Count</MudTh>
         <MudTh>Unique Count</MudTh>
         <MudTh>Null Count</MudTh>
+        <MudTh>Key column</MudTh>
+        <MudTh>Comment</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Table Name">
@@ -29,7 +36,7 @@
                            @onclick="@(() => ToggleExpand(context))"/>
             @context.TableName
         </MudTd>
-        <MudTd DataLabel="Comment" colspan="5">
+        <MudTd DataLabel="Comment" colspan="6">
             <MudTextField @bind-Value="@context.Comment" Variant="Variant.Outlined" Size="Size.Small"
                           Lines="1"/>
         </MudTd>
@@ -39,12 +46,35 @@
         {
             @foreach (var column in context.Columns)
             {
-                <MudTr>
-                    <MudTd DataLabel="Column Name" Style="width: 20%;">@column.ColumnName</MudTd>
+                <MudTr >
+                    <MudTd DataLabel="Column Name" Style="padding-left: 30px;"
+                           Class="@(selectedColumnNames.Contains(column.ColumnName) ? "highlighted-column" : null)">
+                        @column.ColumnName
+                        @if (column.IsPrimaryKey)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Secondary" Size="Size.Small" Title="Primary Key" />
+                        }
+                        else if (column.IsSourceSystemKey)
+                        {
+                            <MudIcon Icon="@Icons.Material.Outlined.Key" Color="Color.Warning" Size="Size.Small" Title="Source System Key" />
+                        }
+                    </MudTd>
                     <MudTd DataLabel="Example Data">@column.ExampleData</MudTd>
                     <MudTd DataLabel="Row Count">@column.RowCount</MudTd>
                     <MudTd DataLabel="Unique Count">@column.UniqueCount</MudTd>
                     <MudTd DataLabel="Null Count">@column.NullCount</MudTd>
+                    <MudTd DataLabel="Key Column">
+                        <MudCheckBox Label="PrimaryKey" @bind-Value="column.IsPrimaryKey"/>
+                        <MudCheckBox Label="ForeignKey" @bind-Value="column.IsSourceSystemKey"/>
+
+
+                    </MudTd>
+                    <MudTd DataLabel="Comment">
+                        <MudTextField @bind-Value="@column.Comment" Variant="Variant.Outlined" Size="Size.Small"
+                                      Lines="1"
+                                       />
+                    </MudTd>
+                    
                 </MudTr>
             }
         }
@@ -63,7 +93,7 @@
 
     private async Task OpenInputDialog()
     {
-        var dialog = await DialogService.ShowAsync<InputSourceData>("Input Source Data",
+        var dialog = await DialogService.ShowAsync<InputSourceDataDialog>("Input Source Data",
             new DialogOptions { CloseOnEscapeKey = true, BackdropClick = false }
         );
 
@@ -122,5 +152,22 @@
         var dbugCount = test.Count();
         
     }
+
+    private Task ToggleExpandAll()
+    {
+        if (expandedTables.Count == AppState.SourceTables.Count)
+        {
+            expandedTables.Clear();
+        }
+        else
+        {
+            expandedTables = new HashSet<SourceTable>(AppState.SourceTables);
+        }
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    
 
 }

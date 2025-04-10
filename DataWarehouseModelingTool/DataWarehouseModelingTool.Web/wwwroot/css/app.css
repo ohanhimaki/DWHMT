@@ -86,3 +86,7 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.highlighted-column {
+    background-color: lightyellow !important; /* Or any other highlighting style */
+}
