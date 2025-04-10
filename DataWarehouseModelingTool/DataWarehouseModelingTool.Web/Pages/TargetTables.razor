@@ -1,0 +1,108 @@
+﻿@page "/targettables"
+@using MudBlazor
+@inject AppStateService AppState
+@inject IDialogService DialogService
+
+<h1>Target Tables</h1>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateTargetTableDialog" Class="mb-4">
+    <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-1" /> Create New Target Table
+</MudButton>
+
+@if (AppState.TargetTables.Any())
+{
+    <MudText Typo="Typo.h6" Class="mt-4">Defined Target Tables:</MudText>
+    <MudList>
+        @foreach (var targetTable in AppState.TargetTables)
+        {
+            <MudListItem Button="true" OnClick="@(() => EditTargetTable(targetTable))">
+                @targetTable.Name (@targetTable.ColumnMappings.Count columns)
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Class="ml-2" />
+            </MudListItem>
+        }
+    </MudList>
+}
+else
+{
+    <MudText Class="mt-4">No target tables defined yet. Click 'Create New Target Table' to begin.</MudText>
+}
+
+<MudText Typo="Typo.h6" Class="mt-4">Target Table Relationships:</MudText>
+@if (AppState.TargetTableRelationships.Any())
+{
+    <MudList>
+        @foreach (var relationship in AppState.TargetTableRelationships)
+        {
+            <MudListItem>
+                @relationship.SourceTableName.@relationship.SourceColumnName
+                <MudIcon Icon="@Icons.Material.Filled.ArrowRightAlt" Class="mx-2" />
+                @relationship.TargetTableName.@relationship.TargetColumnName (@relationship.RelationshipType)
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Class="ml-2"
+                               @onclick="@(() => DeleteRelationship(relationship))" />
+            </MudListItem>
+        }
+    </MudList>
+}
+else
+{
+    <MudText>No target table relationships defined.</MudText>
+}
+
+<MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="OpenCreateRelationshipDialog" Class="mt-2">
+    <MudIcon Icon="@Icons.Material.Filled.Link" Class="mr-1" /> Create New Relationship
+</MudButton>
+
+@code {
+    private async Task OpenCreateTargetTableDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CreateTargetTableDialog>("Create New Target Table");
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is TargetTableDefinition newTable)
+        {
+            AppState.TargetTables.Add(newTable);
+            await AppState.SaveTargetTables();
+        }
+    }
+
+    private async Task EditTargetTable(TargetTableDefinition tableToEdit)
+    {
+        var parameters = new DialogParameters { ["TargetTable"] = tableToEdit };
+        var dialog = await DialogService.ShowAsync<CreateTargetTableDialog>("Edit Target Table", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is TargetTableDefinition updatedTable)
+        {
+            // Find and update the existing table in the list
+            var index = AppState.TargetTables.IndexOf(tableToEdit);
+            if (index != -1)
+            {
+                AppState.TargetTables[index] = updatedTable;
+                await AppState.SaveTargetTables();
+            }
+        }
+    }
+
+    private async Task OpenCreateRelationshipDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CreateRelationshipDialog>("Create New Relationship");
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is TargetTableRelationship newRelationship)
+        {
+            AppState.TargetTableRelationships.Add(newRelationship);
+            await AppState.SaveTargetTables();
+        }
+    }
+
+    private async Task DeleteRelationship(TargetTableRelationship relationshipToDelete)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            $"Are you sure you want to delete the relationship between {relationshipToDelete.SourceTableName}.{relationshipToDelete.SourceColumnName} and {relationshipToDelete.TargetTableName}.{relationshipToDelete.TargetColumnName}?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (result == true)
+        {
+            AppState.TargetTableRelationships.Remove(relationshipToDelete);
+            await AppState.SaveTargetTables();
+        }
+    }
+}

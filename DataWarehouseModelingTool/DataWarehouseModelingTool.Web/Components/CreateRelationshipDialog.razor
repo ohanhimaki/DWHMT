@@ -1,0 +1,90 @@
+﻿@using MudBlazor
+@inject AppStateService AppState
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-2">Create New Relationship</MudText>
+
+        <MudSelect T="string" @bind-Value="sourceTableName" Label="Source Table" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2">
+            @foreach (var table in AppState.TargetTables)
+            {
+                <MudSelectItem Value="@table.Name">@table.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="string" @bind-Value="sourceColumnName" Label="Source Column" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2"
+                   Disabled="@(string.IsNullOrEmpty(sourceTableName))">
+            @if (!string.IsNullOrEmpty(sourceTableName))
+            {
+                @foreach (var table in AppState.TargetTables.FirstOrDefault(t => t.Name == sourceTableName)?.ColumnMappings ?? new List<ColumnMapping>())
+                {
+                    <MudSelectItem Value="@table.TargetColumnName">@table.TargetColumnName</MudSelectItem>
+                }
+            }
+        </MudSelect>
+
+        <MudSelect T="string" @bind-Value="targetTableName" Label="Target Table" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2">
+            @foreach (var table in AppState.TargetTables)
+            {
+                <MudSelectItem Value="@table.Name">@table.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="string" @bind-Value="targetColumnName" Label="Target Column" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2"
+                   Disabled="@(string.IsNullOrEmpty(targetTableName))">
+            @if (!string.IsNullOrEmpty(targetTableName))
+            {
+                @foreach (var table in AppState.TargetTables.FirstOrDefault(t => t.Name == targetTableName)?.ColumnMappings ?? new List<ColumnMapping>())
+                {
+                    <MudSelectItem Value="@table.TargetColumnName">@table.TargetColumnName</MudSelectItem>
+                }
+            }
+        </MudSelect>
+
+        <MudSelect T="string" @bind-Value="relationshipType" Label="Relationship Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft">
+            @* <MudSelectItem Value="one-to-one">One-to-One</MudSelectItem> *@
+            @* <MudSelectItem Value="one-to-many">One-to-Many</MudSelectItem> *@
+            @* <MudSelectItem Value="many-to-one">Many-to-One</MudSelectItem> *@
+            @* <MudSelectItem Value="many-to-many">Many-to-Many</MudSelectItem> *@
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save" Disabled="@(!CanSave)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    private string sourceTableName;
+    private string sourceColumnName;
+    private string targetTableName;
+    private string targetColumnName;
+    private string relationshipType;
+
+    private bool CanSave => !string.IsNullOrEmpty(sourceTableName) &&
+                             !string.IsNullOrEmpty(sourceColumnName) &&
+                             !string.IsNullOrEmpty(targetTableName) &&
+                             !string.IsNullOrEmpty(targetColumnName) &&
+                             !string.IsNullOrEmpty(relationshipType) &&
+                             sourceTableName != targetTableName; // Prevent self-referencing relationships
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Save()
+    {
+        var newRelationship = new TargetTableRelationship
+        {
+            SourceTableName = sourceTableName,
+            SourceColumnName = sourceColumnName,
+            TargetTableName = targetTableName,
+            TargetColumnName = targetColumnName,
+            RelationshipType = relationshipType
+        };
+        MudDialog.Close(newRelationship);
+    }
+}

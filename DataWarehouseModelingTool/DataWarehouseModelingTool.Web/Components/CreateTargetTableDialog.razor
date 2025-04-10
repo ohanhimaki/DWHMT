@@ -1,0 +1,139 @@
+﻿@using MudBlazor
+@inject AppStateService AppState
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="targetTableName" Label="Target Table Name" Variant="Variant.Outlined" Class="mb-3" />
+
+        <MudText Typo="Typo.h6" Class="mb-2">Map Source Columns</MudText>
+
+        <MudTable Items="@AppState.SourceTables" Hover="true" Bordered="true">
+            <HeaderContent>
+                <MudTh>Source Table</MudTh>
+                <MudTh>Columns</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="sourceTable">
+                <MudTd>@sourceTable.TableName</MudTd>
+                <MudTd>
+                    <MudList Dense="true">
+                        @foreach (var column in sourceTable.Columns)
+                        {
+                            <MudListItem>
+                                <MudCheckBox Value="@selectedSourceColumns.Contains(new SourceColumnReference { TableName = sourceTable.TableName, ColumnName = column.ColumnName })"
+                                             Label="@column.ColumnName" />
+                            </MudListItem>
+                        }
+                    </MudList>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (selectedSourceColumns.Any())
+        {
+            <MudText Typo="Typo.h6" Class="mt-3 mb-2">Column Mappings</MudText>
+            <MudTable Items="@selectedSourceColumns" Hover="true" Bordered="true">
+                <HeaderContent>
+                    <MudTh>Source Table</MudTh>
+                    <MudTh>Source Column</MudTh>
+                    <MudTh>Target Column Name</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="selectedColumn">
+                    <MudTd>@selectedColumn.TableName</MudTd>
+                    <MudTd>@selectedColumn.ColumnName</MudTd>
+                    <MudTd>
+                        <MudTextField Value="@GetTargetColumnName(selectedColumn)"
+                                      Label="Target Name" Variant="Variant.Outlined" Size="Size.Small" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       @onclick="@(() => RemoveSelectedColumn(selectedColumn))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public TargetTableDefinition TargetTable { get; set; }
+
+    private string targetTableName;
+    private HashSet<SourceColumnReference> selectedSourceColumns = new HashSet<SourceColumnReference>();
+    private Dictionary<SourceColumnReference, string> targetColumnNames = new Dictionary<SourceColumnReference, string>();
+
+    protected override void OnInitialized()
+    {
+        if (TargetTable != null)
+        {
+            targetTableName = TargetTable.Name;
+            foreach (var mapping in TargetTable.ColumnMappings)
+            {
+                selectedSourceColumns.Add(mapping.Source);
+                targetColumnNames[mapping.Source] = mapping.TargetColumnName;
+            }
+        }
+    }
+
+    private void ToggleColumnSelection(SourceColumnReference column)
+    {
+        if (selectedSourceColumns.Contains(column))
+        {
+            selectedSourceColumns.Remove(column);
+            targetColumnNames.Remove(column);
+        }
+        else
+        {
+            selectedSourceColumns.Add(column);
+            targetColumnNames[column] = column.ColumnName; // Default target name is source name
+        }
+    }
+
+    private string GetTargetColumnName(SourceColumnReference column)
+    {
+        return targetColumnNames.TryGetValue(column, out var name) ? name : column.ColumnName;
+    }
+
+    private void SetTargetColumnName(SourceColumnReference column, string name)
+    {
+        targetColumnNames[column] = name;
+    }
+
+    private void RemoveSelectedColumn(SourceColumnReference column)
+    {
+        selectedSourceColumns.Remove(column);
+        targetColumnNames.Remove(column);
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Save()
+    {
+        if (!string.IsNullOrWhiteSpace(targetTableName) && selectedSourceColumns.Any())
+        {
+            var newTargetTable = new TargetTableDefinition
+            {
+                Name = targetTableName,
+                ColumnMappings = selectedSourceColumns.Select(src => new ColumnMapping
+                {
+                    Source = src,
+                    TargetColumnName = targetColumnNames[src]
+                    // Add other default mappings here if needed
+                }).ToList()
+            };
+            MudDialog.Close(newTargetTable);
+        }
+        else
+        {
+            // Optionally show a validation message
+        }
+    }
+}

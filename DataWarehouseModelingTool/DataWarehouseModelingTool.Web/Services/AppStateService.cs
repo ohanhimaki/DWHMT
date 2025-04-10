@@ -15,9 +15,16 @@ public class AppStateService
     {
         _localStorage = localStorage;
         _jsRuntime = jsRuntime;
+        Initialize();
+
     }
 
+    public bool IsLoading { get; set; } = false;
+    public bool IsInitialized { get; set; } = false;
     public List<SourceTable> SourceTables { get; set; } = new List<SourceTable>();
+    public List<TargetTableDefinition> TargetTables { get; set; } = new List<TargetTableDefinition>();
+
+    public List<TargetTableRelationship> TargetTableRelationships { get; set; } = new List<TargetTableRelationship>();
 
     public async Task SaveSourceTablesToLocalStorage()
     {
@@ -81,11 +88,6 @@ public async Task DownloadStateAsJson()
 
     public async Task LoadDataFromLocalStorage()
     {
-        var storedSourceTables = await _localStorage.GetItemAsync<string>(SourceTablesKey);
-        if (!string.IsNullOrEmpty(storedSourceTables))
-        {
-            SourceTables = JsonSerializer.Deserialize<List<SourceTable>>(storedSourceTables) ?? new List<SourceTable>();
-        }
     }
 
     public async Task MergeSourceTables(List<SourceTable> processedTables)
@@ -120,5 +122,33 @@ public async Task DownloadStateAsJson()
         }
 
         await SaveSourceTablesToLocalStorage();
+    }
+    
+    public async Task SaveTargetTables()
+    {
+        await _localStorage.SetItemAsync("TargetTables", TargetTables);
+        await _localStorage.SetItemAsync("TargetTableRelationships", TargetTableRelationships);
+    }
+
+    public async Task Initialize()
+    {
+        if(IsInitialized) return;
+        
+            
+        var storedSourceTables = await _localStorage.GetItemAsync<string>(SourceTablesKey);
+        if (!string.IsNullOrEmpty(storedSourceTables))
+        {
+            SourceTables = JsonSerializer.Deserialize<List<SourceTable>>(storedSourceTables) ?? new List<SourceTable>();
+        }
+        var storedTargetTables = await _localStorage.GetItemAsync<string>("TargetTables");
+        if (!string.IsNullOrEmpty(storedTargetTables))
+        {
+            TargetTables = JsonSerializer.Deserialize<List<TargetTableDefinition>>(storedTargetTables) ?? new List<TargetTableDefinition>();
+        }
+        var storedTargetTableRelationships = await _localStorage.GetItemAsync<string>("TargetTableRelationships");
+        if (!string.IsNullOrEmpty(storedTargetTableRelationships))
+        {
+            TargetTableRelationships = JsonSerializer.Deserialize<List<TargetTableRelationship>>(storedTargetTableRelationships) ?? new List<TargetTableRelationship>();
+        }
     }
 }
