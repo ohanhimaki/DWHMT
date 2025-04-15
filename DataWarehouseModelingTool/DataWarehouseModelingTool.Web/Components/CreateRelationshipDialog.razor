@@ -22,22 +22,18 @@
             }
         </MudSelect>
 
-        <MudSelect T="string" @bind-Value="targetTableName" Label="Target Table" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2">
-            @foreach (var table in AppState.TargetTables)
-            {
-                <MudSelectItem Value="@table.Name">@table.Name</MudSelectItem>
-            }
-        </MudSelect>
 
-        <MudSelect T="string" @bind-Value="targetColumnName" Label="Target Column" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2"
-                   Disabled="@(string.IsNullOrEmpty(targetTableName))">
-            @if (!string.IsNullOrEmpty(targetTableName))
+        <MudSelect T="TargetColumn" @bind-Value="targetcolumn" Label="Target Column" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2">
+            
+            @foreach(var table in AppState.TargetTables)
             {
-                @foreach (var table in AppState.TargetTables.FirstOrDefault(t => t.Name == targetTableName)?.ColumnMappings ?? new List<ColumnMapping>())
+                foreach (var columnMapping in table.ColumnMappings.Where(x => x.IsKey))
                 {
-                    <MudSelectItem Value="@table.TargetColumnName">@table.TargetColumnName</MudSelectItem>
+                    <MudSelectItem Value="@(new TargetColumn { Table = table.Name, Column = columnMapping.TargetColumnName })">@table.Name - @columnMapping.TargetColumnName</MudSelectItem>
                 }
+
             }
+            
         </MudSelect>
 
         <MudSelect T="string" @bind-Value="relationshipType" Label="Relationship Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft">
@@ -77,16 +73,23 @@
 
     private string sourceTableName;
     private string sourceColumnName;
-    private string targetTableName;
-    private string targetColumnName;
+    // private (string,string) targetTableName;
+    // private string targetColumnName;
+    private TargetColumn? targetcolumn;
     private string relationshipType;
 
     private bool CanSave => !string.IsNullOrEmpty(sourceTableName) &&
                              !string.IsNullOrEmpty(sourceColumnName) &&
-                             !string.IsNullOrEmpty(targetTableName) &&
-                             !string.IsNullOrEmpty(targetColumnName) &&
+                             !string.IsNullOrEmpty(targetcolumn?.Table) &&
+                             !string.IsNullOrEmpty(targetcolumn?.Column) &&
                              !string.IsNullOrEmpty(relationshipType) &&
-                             sourceTableName != targetTableName; // Prevent self-referencing relationships
+                             sourceTableName != targetcolumn.Table; // Prevent self-referencing relationships
+
+    public class TargetColumn
+    {
+        public string Table { get; set; }
+        public string Column { get; set; }
+    }
 
     private void Cancel()
     {
@@ -99,8 +102,8 @@
         {
             SourceTableName = sourceTableName,
             SourceColumnName = sourceColumnName,
-            TargetTableName = targetTableName,
-            TargetColumnName = targetColumnName,
+            TargetTableName = targetcolumn.Table,
+            TargetColumnName = targetcolumn.Column,
             RelationshipType = relationshipType
         };
         MudDialog.Close(newRelationship);
