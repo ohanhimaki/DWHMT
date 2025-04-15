@@ -12,15 +12,24 @@
 @if (AppState.TargetTables.Any())
 {
     <MudText Typo="Typo.h6" Class="mt-4">Defined Target Tables:</MudText>
-    <MudList>
-        @foreach (var targetTable in AppState.TargetTables)
-        {
-            <MudListItem Button="true" OnClick="@(() => EditTargetTable(targetTable))">
-                @targetTable.Name (@targetTable.ColumnMappings.Count columns)
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Class="ml-2" />
-            </MudListItem>
-        }
-    </MudList>
+    <MudTable Items="AppState.TargetTables">
+        
+        <HeaderContent>
+            <MudTh>Table Name</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Table Name">@context.Name</MudTd>
+            
+            <MudTd DataLabel="Actions">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => EditTargetTable(@context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteTargetTable(@context))" />
+            </MudTd>
+        </RowTemplate>
+
+
+
+    </MudTable>
 }
 else
 {
@@ -30,18 +39,6 @@ else
 <MudText Typo="Typo.h6" Class="mt-4">Target Table Relationships:</MudText>
 @if (AppState.TargetTableRelationships.Any())
 {
-    <MudList>
-        @foreach (var relationship in AppState.TargetTableRelationships)
-        {
-            <MudListItem>
-                @relationship.SourceTableName.@relationship.SourceColumnName
-                <MudIcon Icon="@Icons.Material.Filled.ArrowRightAlt" Class="mx-2" />
-                @relationship.TargetTableName.@relationship.TargetColumnName (@relationship.RelationshipType)
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Class="ml-2"
-                               @onclick="@(() => DeleteRelationship(relationship))" />
-            </MudListItem>
-        }
-    </MudList>
 }
 else
 {
@@ -53,31 +50,37 @@ else
 </MudButton>
 
 @code {
-    private async Task OpenCreateTargetTableDialog()
+
+    DialogOptions options = new DialogOptions
     {
-        var dialog = await DialogService.ShowAsync<CreateTargetTableDialog>("Create New Target Table");
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.ExtraLarge,
+        FullWidth = true,
+    };
+
+private async Task OpenCreateTargetTableDialog()
+    {
+
+        var newTable = new TargetTableDefinition();
+        var parameters = new DialogParameters { ["TargetTable"] = newTable };
+        var dialog = await DialogService.ShowAsync<CreateTargetTableDialog>("Create New Target Table",parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled && result.Data is TargetTableDefinition newTable)
+        if (!result.Canceled)
         {
             AppState.TargetTables.Add(newTable);
             await AppState.SaveTargetTables();
+            StateHasChanged();
         }
     }
 
     private async Task EditTargetTable(TargetTableDefinition tableToEdit)
     {
         var parameters = new DialogParameters { ["TargetTable"] = tableToEdit };
-        var dialog = await DialogService.ShowAsync<CreateTargetTableDialog>("Edit Target Table", parameters);
+        var dialog = await DialogService.ShowAsync<CreateTargetTableDialog>("Edit Target Table", parameters,options);
         var result = await dialog.Result;
-        if (!result.Canceled && result.Data is TargetTableDefinition updatedTable)
+        if (!result.Canceled)
         {
-            // Find and update the existing table in the list
-            var index = AppState.TargetTables.IndexOf(tableToEdit);
-            if (index != -1)
-            {
-                AppState.TargetTables[index] = updatedTable;
-                await AppState.SaveTargetTables();
-            }
+            await AppState.SaveTargetTables();
         }
     }
 
@@ -105,4 +108,19 @@ else
             await AppState.SaveTargetTables();
         }
     }
+
+    private async Task DeleteTargetTable(TargetTableDefinition context)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            $"Are you sure you want to delete the target table {context.Name}?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (result == true)
+        {
+            AppState.TargetTables.Remove(context);
+            await AppState.SaveTargetTables();
+        }
+    }
+
 }

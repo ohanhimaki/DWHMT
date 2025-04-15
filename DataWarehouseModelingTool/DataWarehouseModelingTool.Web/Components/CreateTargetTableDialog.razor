@@ -6,52 +6,82 @@
         <MudTextField @bind-Value="targetTableName" Label="Target Table Name" Variant="Variant.Outlined" Class="mb-3" />
 
         <MudText Typo="Typo.h6" Class="mb-2">Map Source Columns</MudText>
+        
+        <MudGrid>
+            <MudItem xs="12" md="6">
 
-        <MudTable Items="@AppState.SourceTables" Hover="true" Bordered="true">
-            <HeaderContent>
-                <MudTh>Source Table</MudTh>
-                <MudTh>Columns</MudTh>
-            </HeaderContent>
-            <RowTemplate Context="sourceTable">
-                <MudTd>@sourceTable.TableName</MudTd>
-                <MudTd>
-                    <MudList Dense="true">
-                        @foreach (var column in sourceTable.Columns)
-                        {
-                            <MudListItem>
-                                <MudCheckBox Value="@selectedSourceColumns.Contains(new SourceColumnReference { TableName = sourceTable.TableName, ColumnName = column.ColumnName })"
-                                             Label="@column.ColumnName" />
-                            </MudListItem>
-                        }
-                    </MudList>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+                @if (_sourceColumnInfos.Any())
+                {
+                    <MudTable Items="_sourceColumnInfos"
+                              Height="60vh"
+                              MultiSelection="true"
+                          @bind-SelectedItems="_selectedSourceColumns">
+                    <ToolBarContent>
+                        <MudButton OnClick="@(() => AddNewColumnFromSelectedSourceColumns())">Lisää valituista sarake</MudButton>
+                        <MudButton OnClick="@(() => AddSelectedColumns())">Lisää valitut sarakkeet</MudButton>
 
-        @if (selectedSourceColumns.Any())
-        {
-            <MudText Typo="Typo.h6" Class="mt-3 mb-2">Column Mappings</MudText>
-            <MudTable Items="@selectedSourceColumns" Hover="true" Bordered="true">
-                <HeaderContent>
-                    <MudTh>Source Table</MudTh>
-                    <MudTh>Source Column</MudTh>
-                    <MudTh>Target Column Name</MudTh>
-                    <MudTh></MudTh>
-                </HeaderContent>
-                <RowTemplate Context="selectedColumn">
-                    <MudTd>@selectedColumn.TableName</MudTd>
-                    <MudTd>@selectedColumn.ColumnName</MudTd>
-                    <MudTd>
-                        <MudTextField Value="@GetTargetColumnName(selectedColumn)"
-                                      Label="Target Name" Variant="Variant.Outlined" Size="Size.Small" />
-                    </MudTd>
-                    <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                       @onclick="@(() => RemoveSelectedColumn(selectedColumn))" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Table name</MudTh>
+                        <MudTh>ColumnName name</MudTh>
+                        <MudTh>ExampleData name</MudTh>
+                        <MudTh>RowCount</MudTh>
+                        <MudTh>UniqueCount</MudTh>
+                        <MudTh>NullCount</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Table">@context.TableName </MudTd>
+                        <MudTd DataLabel="column">@context.ColumnName </MudTd>
+                        <MudTd DataLabel="example">@context.ExampleData </MudTd>
+                        <MudTd DataLabel="rowcount">@context.RowCount </MudTd>
+                        <MudTd DataLabel="uniquecount">@context.UniqueCount </MudTd>
+                        <MudTd DataLabel="nullcount">@context.NullCount </MudTd>
+                        <MudTd>
+                            <MudStack>
+                                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary" OnClick="@(() => AddColumnMapping(context))"></MudIconButton>
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+
+                }
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTable Items="TargetTable.ColumnMappings"
+                          
+edit
+                          Height="60vh"
+                          >
+
+                    <HeaderContent>
+                        <MudTh>ColumnName name</MudTh>
+                        <MudTh>SourceColumns</MudTh>
+                        <MudTh>IsKey</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="column">
+                            <MudTextField Label="ColumnName" @bind-Value="@context.TargetColumnName"/>
+                        </MudTd>
+                        <MudTd DataLabel="example">@context.SourceColumnNames </MudTd>
+                        <MudTd DataLabel="rowcount">@context.IsKey </MudTd>
+                        <MudTd DataLabel="uniquecount">@context.Description </MudTd>
+                        <MudTd>
+                            <MudStack>
+                                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary" ></MudIconButton>
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+            </MudItem>
+        </MudGrid>
+
+        
+
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -63,77 +93,75 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public TargetTableDefinition TargetTable { get; set; }
 
+    // private Dictionary<SourceColumnReference,SourceColumnInfo> _sourceColumnInfos = new Dictionary<SourceColumnReference, SourceColumnInfo>();
+    
+    private List<SourceColumnInfo> _sourceColumnInfos = new List<SourceColumnInfo>();
+    
+
     private string targetTableName;
-    private HashSet<SourceColumnReference> selectedSourceColumns = new HashSet<SourceColumnReference>();
-    private Dictionary<SourceColumnReference, string> targetColumnNames = new Dictionary<SourceColumnReference, string>();
+    private HashSet<SourceColumnInfo>? _selectedSourceColumns;
+
 
     protected override void OnInitialized()
     {
-        if (TargetTable != null)
-        {
-            targetTableName = TargetTable.Name;
-            foreach (var mapping in TargetTable.ColumnMappings)
-            {
-                selectedSourceColumns.Add(mapping.Source);
-                targetColumnNames[mapping.Source] = mapping.TargetColumnName;
-            }
-        }
+        targetTableName = TargetTable?.Name ?? "";
+        
+        _sourceColumnInfos = AppState.SourceTables.SelectMany(x => x.Columns).ToList();
+        
+        
+        
     }
-
-    private void ToggleColumnSelection(SourceColumnReference column)
-    {
-        if (selectedSourceColumns.Contains(column))
-        {
-            selectedSourceColumns.Remove(column);
-            targetColumnNames.Remove(column);
-        }
-        else
-        {
-            selectedSourceColumns.Add(column);
-            targetColumnNames[column] = column.ColumnName; // Default target name is source name
-        }
-    }
-
-    private string GetTargetColumnName(SourceColumnReference column)
-    {
-        return targetColumnNames.TryGetValue(column, out var name) ? name : column.ColumnName;
-    }
-
-    private void SetTargetColumnName(SourceColumnReference column, string name)
-    {
-        targetColumnNames[column] = name;
-    }
-
-    private void RemoveSelectedColumn(SourceColumnReference column)
-    {
-        selectedSourceColumns.Remove(column);
-        targetColumnNames.Remove(column);
-    }
-
+    
     private void Cancel()
     {
         MudDialog.Cancel();
     }
 
-    private void Save()
+
+    private void Save(MouseEventArgs obj)
     {
-        if (!string.IsNullOrWhiteSpace(targetTableName) && selectedSourceColumns.Any())
-        {
-            var newTargetTable = new TargetTableDefinition
-            {
-                Name = targetTableName,
-                ColumnMappings = selectedSourceColumns.Select(src => new ColumnMapping
-                {
-                    Source = src,
-                    TargetColumnName = targetColumnNames[src]
-                    // Add other default mappings here if needed
-                }).ToList()
-            };
-            MudDialog.Close(newTargetTable);
-        }
-        else
-        {
-            // Optionally show a validation message
-        }
+        TargetTable.Name = targetTableName;
+        MudDialog.Close();
     }
+
+    private Task AddColumnMapping(SourceColumnInfo context)
+    {
+        var listOfSourceColumns = new List<SourceColumnInfo>() { context };
+        TargetTable.AddColumnFromSourceColumns(listOfSourceColumns);
+        return Task.CompletedTask;
+    }
+
+    private Task AddNewColumnFromSelectedSourceColumns()
+    {
+        if (_selectedSourceColumns == null || _selectedSourceColumns.Count == 0)
+        {
+            //todo message
+            return Task.CompletedTask;
+        }
+        var listOfSourceColumns = new List<SourceColumnInfo>();
+        foreach (var selectedColumn in _selectedSourceColumns)
+        {
+            listOfSourceColumns.Add(selectedColumn);
+        }
+        TargetTable.AddColumnFromSourceColumns(listOfSourceColumns);
+        _selectedSourceColumns.Clear();
+        return Task.CompletedTask;
+        
+    }
+
+    private Task AddSelectedColumns()
+    {
+        if (_selectedSourceColumns == null || _selectedSourceColumns.Count == 0)
+        {
+            //todo message
+            return Task.CompletedTask;
+        }
+        foreach (var selectedColumn in _selectedSourceColumns)
+        {
+            TargetTable.AddColumnFromSourceColumns(new List<SourceColumnInfo>() { selectedColumn });
+        }
+        _selectedSourceColumns.Clear();
+        return Task.CompletedTask;
+    }
+
 }
