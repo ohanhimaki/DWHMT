@@ -46,7 +46,17 @@
                         <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Table">@context.TableName </MudTd>
+                        <MudTd DataLabel="Table">@context.TableName
+
+                            @if (context.IsPrimaryKey)
+                            {
+                            <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Secondary" Size="Size.Small" Title="Primary Key" />
+                            }
+                            else if (context.IsSourceSystemKey)
+                            {
+                            <MudIcon Icon="@Icons.Material.Outlined.Key" Color="Color.Warning" Size="Size.Small" Title="Source System Key" />
+                            }
+                            </MudTd>
                         <MudTd DataLabel="column">@context.ColumnName </MudTd>
                         <MudTd DataLabel="example">@context.ExampleData </MudTd>
                         <MudTd DataLabel="rowcount">@context.RowCount </MudTd>
@@ -127,7 +137,7 @@
     {
         targetTableName = TargetTable?.Name ?? "";
         
-        _sourceColumnInfos = AppState.SourceTables.SelectMany(x => x.Columns).ToList();
+        _sourceColumnInfos = AppState.SourceTables.SelectMany(x => x.Columns).Where(x => !x.IsUseless).ToList();
         
         
         
@@ -199,10 +209,6 @@
         }
         if (item != null)
         {
-            selectedTargetColumn = item;
-        }
-        else
-        {
             // select all source columns that are item sourcecolumns
             _selectedSourceColumns = new HashSet<SourceColumnInfo>();
             foreach (var sourceColumn in item.SourceColumns)
@@ -229,11 +235,11 @@
         }
         if(selectedTargetColumn != null)
         {
-            foreach (var sourceColumnInfo in item)
+            selectedTargetColumn.SourceColumns = item.Select(x => new SourceColumnReference
             {
-                selectedTargetColumn.SourceColumns.MergeSourceColumns(sourceColumnInfo);
-                
-            }
+                TableName = x.TableName,
+                ColumnName = x.ColumnName
+            }).ToList();
 
         }
         return Task.CompletedTask;
@@ -246,6 +252,7 @@
             if (obj.Item == selectedTargetColumn)
             {
                 selectedTargetColumn = null;
+                _selectedSourceColumns.Clear();
             }
             else
             {

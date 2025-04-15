@@ -9,11 +9,13 @@ public class SourceColumnInfo
     public int UniqueCount { get; set; }
     public int NullCount { get; set; }
     
+    
     // settings:
     
     public string? Comment { get; set; } // For user notes
     public bool IsSourceSystemKey { get; set; } = false; // To mark source system keys
     public bool IsPrimaryKey { get; set; } = false; // To mark potential primary keys in source
+    public bool IsUseless { get; set; } = false;
 
     public void Merge(SourceColumnInfo processedTableColumn)
     {
@@ -23,6 +25,7 @@ public class SourceColumnInfo
         RowCount = processedTableColumn.RowCount;
         UniqueCount = processedTableColumn.UniqueCount;
         NullCount = processedTableColumn.NullCount;
+        
         
     }
 }

@@ -28,6 +28,7 @@
         <MudTh>Unique Count</MudTh>
         <MudTh>Null Count</MudTh>
         <MudTh>Key column</MudTh>
+        <MudTh>Useless</MudTh>
         <MudTh>Comment</MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -36,7 +37,7 @@
                            @onclick="@(() => ToggleExpand(context))"/>
             @context.TableName
         </MudTd>
-        <MudTd DataLabel="Comment" colspan="6">
+        <MudTd DataLabel="Comment" colspan="7">
             <MudTextField @bind-Value="@context.Comment" Variant="Variant.Outlined" Size="Size.Small"
                           Lines="1"/>
         </MudTd>
@@ -66,8 +67,9 @@
                     <MudTd DataLabel="Key Column">
                         <MudCheckBox Label="PrimaryKey" @bind-Value="column.IsPrimaryKey"/>
                         <MudCheckBox Label="ForeignKey" @bind-Value="column.IsSourceSystemKey"/>
-
-
+                    </MudTd>
+                    <MudTd DataLabel="IsUseless">
+                        <MudCheckBox Label="IsUseless" @bind-Value="column.IsUseless"/>
                     </MudTd>
                     <MudTd DataLabel="Comment">
                         <MudTextField @bind-Value="@column.Comment" Variant="Variant.Outlined" Size="Size.Small"
