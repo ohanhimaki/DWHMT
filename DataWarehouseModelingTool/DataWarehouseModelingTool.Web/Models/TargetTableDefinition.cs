@@ -25,7 +25,7 @@ public class TargetTableDefinition
                 sourceColumnReferences.Add(sourceColumnReference);
             }
         }
-        var sourceColumnName = (listOfSourceColumns.Aggregate("", (current, sourceColumn) => current + $"{sourceColumn.TableName}.{sourceColumn.ColumnName}, ")).TrimEnd(',', ' ');
+        var sourceColumnName = string.Join(",", sourceColumnReferences.Select(sourceColumn => $"{sourceColumn.TableName}.{sourceColumn.ColumnName}"));
         var columnMapping = new ColumnMapping
         {
             SourceColumns = sourceColumnReferences,
@@ -66,8 +66,8 @@ public class ColumnMapping
 {
     public List<SourceColumnReference> SourceColumns { get; set; }
 
-    public string SourceColumnNames => SourceColumns.Aggregate("",
-        (current, sourceColumn) => current + $"{sourceColumn.TableName}.{sourceColumn.ColumnName}, ");
+    public string SourceColumnNames =>
+        string.Join(",", SourceColumns.Select(sourceColumn => $"{sourceColumn.TableName}.{sourceColumn.ColumnName}"));
     public string TargetColumnName { get; set; }
     public string? TargetDataType { get; set; }
     public bool IsKey { get; set; } = false; 

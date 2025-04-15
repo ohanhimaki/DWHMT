@@ -3,7 +3,6 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.h6" Class="mb-2">Create New Relationship</MudText>
 
         <MudSelect T="string" @bind-Value="sourceTableName" Label="Source Table" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" Class="mb-2">
             @foreach (var table in AppState.TargetTables)
@@ -42,10 +41,8 @@
         </MudSelect>
 
         <MudSelect T="string" @bind-Value="relationshipType" Label="Relationship Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft">
-            @* <MudSelectItem Value="one-to-one">One-to-One</MudSelectItem> *@
-            @* <MudSelectItem Value="one-to-many">One-to-Many</MudSelectItem> *@
-            @* <MudSelectItem Value="many-to-one">Many-to-One</MudSelectItem> *@
-            @* <MudSelectItem Value="many-to-many">Many-to-Many</MudSelectItem> *@
+            <MudSelectItem Value="@("one-to-one")">One-to-One</MudSelectItem>
+            <MudSelectItem Value="@("many-to-one")">Many-to-One</MudSelectItem>
         </MudSelect>
     </DialogContent>
     <DialogActions>
@@ -56,6 +53,27 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    
+    [Parameter]
+    public string? sourceTable { get; set; }
+    
+    [Parameter]
+    public string? sourceColumn { get; set; }
+
+    protected override Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(sourceTable))
+        {
+            sourceTableName = sourceTable;
+        }
+        if (!string.IsNullOrEmpty(sourceColumn))
+        {
+            sourceColumnName = sourceColumn;
+        }
+        
+        return base.OnParametersSetAsync();
+    }
+
 
     private string sourceTableName;
     private string sourceColumnName;

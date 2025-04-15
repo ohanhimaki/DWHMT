@@ -1,6 +1,18 @@
 ﻿@using MudBlazor
 @inject AppStateService AppState
+@inject IDialogService DialogService
 
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+    .selected > td {
+        color: white !important;
+    }
+    .selected > td .mud-input {
+        color: white !important;
+    }
+</style>
 <MudDialog>
     <DialogContent>
         <MudTextField @bind-Value="targetTableName" Label="Target Table Name" Variant="Variant.Outlined" Class="mb-3" />
@@ -15,7 +27,10 @@
                     <MudTable Items="_sourceColumnInfos"
                               Height="60vh"
                               MultiSelection="true"
-                          @bind-SelectedItems="_selectedSourceColumns">
+                              T="SourceColumnInfo"
+                              SelectedItems="_selectedSourceColumns"
+                                SelectedItemsChanged="@((items) => SelectedSourceColumnChanged(items))"
+                              >
                     <ToolBarContent>
                         <MudButton OnClick="@(() => AddNewColumnFromSelectedSourceColumns())">Lisää valituista sarake</MudButton>
                         <MudButton OnClick="@(() => AddSelectedColumns())">Lisää valitut sarakkeet</MudButton>
@@ -50,8 +65,9 @@
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTable Items="TargetTable.ColumnMappings"
-                          
-edit
+                          OnRowClick="ColumnRefClickEvent"
+                          RowClassFunc="@SelectedRowClassFunc"
+                          T="ColumnMapping"
                           Height="60vh"
                           >
 
@@ -67,11 +83,15 @@ edit
                             <MudTextField Label="ColumnName" @bind-Value="@context.TargetColumnName"/>
                         </MudTd>
                         <MudTd DataLabel="example">@context.SourceColumnNames </MudTd>
-                        <MudTd DataLabel="rowcount">@context.IsKey </MudTd>
-                        <MudTd DataLabel="uniquecount">@context.Description </MudTd>
+                        <MudTd DataLabel="IsKey">
+                            <MudCheckBox @bind-Value="@context.IsKey" Color="Color.Primary" />
+                        </MudTd>
+                        <MudTd DataLabel="uniquecount">
+                            <MudTextField Label="Description" @bind-Value="@context.Description"/>
+                        </MudTd>
                         <MudTd>
                             <MudStack>
-                                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary" ></MudIconButton>
+                                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary" OnClick="@(() => AddRelationship(context))"></MudIconButton>
                             </MudStack>
                         </MudTd>
                     </RowTemplate>
@@ -92,6 +112,7 @@ edit
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public TargetTableDefinition TargetTable { get; set; }
+    public ColumnMapping? selectedTargetColumn { get; set; }
 
     // private Dictionary<SourceColumnReference,SourceColumnInfo> _sourceColumnInfos = new Dictionary<SourceColumnReference, SourceColumnInfo>();
     
@@ -99,7 +120,7 @@ edit
     
 
     private string targetTableName;
-    private HashSet<SourceColumnInfo>? _selectedSourceColumns;
+    private HashSet<SourceColumnInfo> _selectedSourceColumns = new HashSet<SourceColumnInfo>();
 
 
     protected override void OnInitialized()
@@ -162,6 +183,102 @@ edit
         }
         _selectedSourceColumns.Clear();
         return Task.CompletedTask;
+    }
+
+    private Task selectedTargetColumnChanged(ColumnMapping item)
+    {
+        if(_selectedSourceColumns.Count > 0)
+        {
+            //todo
+            // confirmdialog, DO YOU WANT TO ADD TO THIS COLUMN
+            foreach (var selectedSourceColumn in _selectedSourceColumns)
+            {
+                item.SourceColumns.MergeSourceColumns(selectedSourceColumn);
+
+            }
+        }
+        if (item != null)
+        {
+            selectedTargetColumn = item;
+        }
+        else
+        {
+            // select all source columns that are item sourcecolumns
+            _selectedSourceColumns = new HashSet<SourceColumnInfo>();
+            foreach (var sourceColumn in item.SourceColumns)
+            {
+                var sourceColumnInfo = _sourceColumnInfos.FirstOrDefault(x => x.ColumnName == sourceColumn.ColumnName && x.TableName == sourceColumn.TableName);
+                if (sourceColumnInfo != null)
+                {
+                    _selectedSourceColumns.Add(sourceColumnInfo);
+                }
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task SelectedSourceColumnChanged(HashSet<SourceColumnInfo> item)
+    {
+        if (item != null)
+        {
+            _selectedSourceColumns = item;
+        }
+        else
+        {
+            _selectedSourceColumns = new HashSet<SourceColumnInfo>();
+        }
+        if(selectedTargetColumn != null)
+        {
+            foreach (var sourceColumnInfo in item)
+            {
+                selectedTargetColumn.SourceColumns.MergeSourceColumns(sourceColumnInfo);
+                
+            }
+
+        }
+        return Task.CompletedTask;
+    }
+
+    private void ColumnRefClickEvent(TableRowClickEventArgs<ColumnMapping> obj)
+    {
+        if (obj.Item != null)
+        {
+            if (obj.Item == selectedTargetColumn)
+            {
+                selectedTargetColumn = null;
+            }
+            else
+            {
+                selectedTargetColumn = obj.Item;
+                selectedTargetColumnChanged(selectedTargetColumn);
+            }
+        }
+    }
+
+    private string SelectedRowClassFunc(ColumnMapping arg1, int arg2)
+    {
+        if (selectedTargetColumn == arg1)
+        {
+            return "selected";
+        }
+        return string.Empty;
+    }
+
+    private async Task AddRelationship(ColumnMapping context)
+    {
+        var parameters = new DialogParameters
+        {
+            ["sourceTable"] = TargetTable.Name,
+            ["sourceColumn"] = context.TargetColumnName,
+        };
+        var dialog = await DialogService.ShowAsync<CreateRelationshipDialog>("Create New Relationship", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is TargetTableRelationship newRelationship)
+        {
+            AppState.TargetTableRelationships.Add(newRelationship);
+            await AppState.SaveTargetTables();
+        }
+        
     }
 
 }
