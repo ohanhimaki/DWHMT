@@ -1,0 +1,86 @@
+﻿@page "/reportdefinitions"
+@using DataWarehouseModelingTool.Web.Models
+@inject AppStateService AppStateService
+@using MudBlazor
+
+<MudText Typo="Typo.h3" GutterBottom="true">Report Definitions</MudText>
+
+@if (AppStateService.ReportDefinitions == null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="2">
+        <MudItem xs="12">
+            <MudText Typo="Typo.h5" GutterBottom="true">Existing Report Definitions</MudText>
+            <MudPaper Class="pa-4">
+                @if (AppStateService.ReportDefinitions.Count == 0)
+                {
+                    <MudText>No report definitions have been created yet.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@AppStateService.ReportDefinitions" Hover="true" Bordered="true" >
+                        <HeaderContent>
+                            <MudTh>Report Name</MudTh>
+                            <MudTh>Reporting Need</MudTh>
+                            <MudTh>Required Data</MudTh>
+                        </HeaderContent>
+                    <RowTemplate>
+                        
+                            <MudTd Data="@context.ReportName">@context.ReportName</MudTd>
+                            <MudTd Data="@context.ReportingNeed">@context.ReportingNeed</MudTd>
+                            <MudTd Data="@context.RequiredData">@context.RequiredDatastring</MudTd>
+                    </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudText Typo="Typo.h5" GutterBottom="true">Add New Report Definition</MudText>
+            <MudPaper Class="pa-4">
+                <MudTextField Label="Report Name" @bind-Value="newReportName" Variant="Variant.Outlined" Margin="Margin.Normal" />
+                <MudTextField Label="Reporting Need" @bind-Value="newReportingNeed" Variant="Variant.Outlined" Lines="2" Margin="Margin.Normal" />
+                <MudTextField Label="Required Data (comma-separated)" @bind-Value="newRequiredData" Variant="Variant.Outlined" Margin="Margin.Normal" HelperText="e.g., Field1,Field2,Field3" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" @onclick="AddNewReportDefinition">Add Report Definition</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private string newReportName;
+    private string newReportingNeed;
+    private string newRequiredData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AppStateService.Initialize();
+        
+        StateHasChanged();
+    }
+
+    private async Task AddNewReportDefinition()
+    {
+        if (!string.IsNullOrWhiteSpace(newReportName) && !string.IsNullOrWhiteSpace(newReportingNeed) && !string.IsNullOrWhiteSpace(newRequiredData))
+        {
+            var requiredDataSplitted = newRequiredData.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(data => data.Trim())
+                .ToList();
+            var requiredDatas = requiredDataSplitted.Select(data => new RequiredData { Name  = data }).ToList();
+            var newReport = new ReportDefinition
+            {
+                ReportName = newReportName,
+                ReportingNeed = newReportingNeed,
+                RequiredData = requiredDatas
+            };
+            AppStateService.ReportDefinitions.Add(newReport);
+            newReportName = string.Empty;
+            newReportingNeed = string.Empty;
+            newRequiredData = string.Empty;
+            await AppStateService.SaveReportDefinitions();
+        }
+    }
+}
