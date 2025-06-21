@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "DataWarehouseModelingTool.Web",
   "resources": {
-    "hash": "sha256-btgiLOFckX5kvmP9rFMrucmSVfSr/VqB070iS3Sl4XU=",
+    "hash": "sha256-WNQC5lYd7+65q5xArqaD6o3c2+Fh/YnT3eTUzNklSmg=",
     "fingerprinting": {
       "Blazored.LocalStorage.12n6dz54qr.wasm": "Blazored.LocalStorage.wasm",
       "Microsoft.AspNetCore.Components.9xs4f1ukdd.wasm": "Microsoft.AspNetCore.Components.wasm",
@@ -49,7 +49,7 @@
       "System.Threading.zcb42vnja5.wasm": "System.Threading.wasm",
       "System.cunp5qiwjj.wasm": "System.wasm",
       "System.Private.CoreLib.e5eyvf9ejn.wasm": "System.Private.CoreLib.wasm",
-      "DataWarehouseModelingTool.Web.vdlkqhkbp0.wasm": "DataWarehouseModelingTool.Web.wasm",
+      "DataWarehouseModelingTool.Web.t5x6vp1mrr.wasm": "DataWarehouseModelingTool.Web.wasm",
       "dotnet.js": "dotnet.js",
       "dotnet.native.rtblh4npr3.js": "dotnet.native.js",
       "dotnet.native.aqhezbunpl.wasm": "dotnet.native.wasm",
@@ -121,7 +121,7 @@
       "System.Text.RegularExpressions.6ho7xcs3v0.wasm": "sha256-VpddQFi2ABOGLBREK6YD685+YGM7DRuUC+WJYsiOgjg=",
       "System.Threading.zcb42vnja5.wasm": "sha256-fZ9o2IQTIELEttSIeZ1yev0uL+0qIYnwOC1p/5RM/0k=",
       "System.cunp5qiwjj.wasm": "sha256-DM5iEENhrifGKn33Y7cqRzxC0OtHXYOKO13icwIazj8=",
-      "DataWarehouseModelingTool.Web.vdlkqhkbp0.wasm": "sha256-vRjfV56QViuHk50sIKZStjwRh3r5VLNYj2tCrwiJgDY="
+      "DataWarehouseModelingTool.Web.t5x6vp1mrr.wasm": "sha256-n/9WPqmdieXvEKaREK6LdoCO/mUuoUu7O/EiYrJu6PY="
     }
   },
   "cacheBootResources": true,
