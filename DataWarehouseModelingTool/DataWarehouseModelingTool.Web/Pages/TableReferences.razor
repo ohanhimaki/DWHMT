@@ -1,0 +1,161 @@
+﻿@page "/TableReferences"
+@using MudBlazor
+
+<MudText Typo="Typo.h3" GutterBottom="true">Table References</MudText>
+
+<MudTextField Label="Paste Data Here" @bind-Value="pastedData" Variant="Variant.Outlined" Margin="Margin.Normal" Lines="5" HelperText="Paste data from Excel (2 columns separated by tabs)" />
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" @onclick="ProcessPastedData">Process Data</MudButton>
+
+@if (elements.Count > 0)
+{
+
+
+    <MudSelect T="Element" Label="Select Element" @bind-Value="selectedElement" Variant="Variant.Outlined" Margin="Margin.Normal">
+        @foreach (var element in elements)
+        {
+            <MudSelectItem T="Element" Value="@element">@element.name</MudSelectItem>
+        }
+    </MudSelect>
+
+    @if (selectedElement != null)
+    {
+        <MudGrid>
+            <MudItem xs="4">
+                <MudText Typo="Typo.h6">References</MudText>
+                <MudList T="Reference" SelectedValueChanged="@((x) => SelectElement(x.targetElement) )" >
+                    @foreach (var reference in selectedElement.references)
+                    {
+                        <MudListItem Text="@reference.name" Value="@reference"/>
+                        
+                    }
+                </MudList>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.h6">Selected Element</MudText>
+                <MudList T="string">
+                    <MudListItem>
+                        <MudText>@selectedElement.name</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.h6">Referenced By</MudText>
+                <MudList T="Reference" SelectedValueChanged="@((x) => SelectElement(x.sourceElement) )" >
+                    @foreach (var referenced in selectedElement.referenced)
+                    {
+                        <MudListItem Text="@referenced.name" Value="@referenced"/>
+                    }
+                </MudList>
+            </MudItem>
+        </MudGrid>
+    }
+}
+
+@code {
+    private string pastedData;
+    
+    private List<Element> elements = new();
+    private Element? selectedElement;
+    private void ProcessPastedData()
+    {
+        List<TableReference> parsedData = new List<TableReference>();
+        if (!string.IsNullOrWhiteSpace(pastedData))
+        {
+            var rows = pastedData.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var row in rows)
+            {
+                var columns = row.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (columns.Length >= 2)
+                {
+                    parsedData.Add(new TableReference
+                    {
+                        Column1 = columns[0].Trim(),
+                        Column2 = columns[1].Trim()
+                    });
+                }
+            }
+        }
+        var uniqueElements = parsedData.Select(x => x.Column1).Concat(parsedData.Select(x => x.Column2))
+            .Distinct().ToList();
+
+        elements.Clear();
+        foreach (var element in uniqueElements)
+        {
+            elements.Add(new Element
+            {
+                id = element,
+                name = element,
+                type = "TableReference",
+                description = "Description for " + element,
+                referenced = new List<Reference>(),
+                references = new List<Reference>()
+            });
+        }
+        foreach (var refItem in parsedData)
+        {
+            var sourceElement = elements.FirstOrDefault(e => e.id == refItem.Column1);
+            var targetElement = elements.FirstOrDefault(e => e.id == refItem.Column2);
+
+            if (sourceElement != null && targetElement != null)
+            {
+                sourceElement.references.Add(new Reference
+                {
+                    id = targetElement.id,
+                    name = targetElement.name,
+                    type = targetElement.type,
+                    description = targetElement.description,
+                    sourceElement = sourceElement,
+                    targetElement = targetElement
+                });
+
+                targetElement.referenced.Add(new Reference
+                {
+                    id = sourceElement.id,
+                    name = sourceElement.name,
+                    type = sourceElement.type,
+                    description = sourceElement.description,
+                    sourceElement = sourceElement,
+                    targetElement = targetElement
+                });
+            }
+        }
+        
+    }
+
+    private class TableReference
+    {
+        public string Column1 { get; set; }
+        public string Column2 { get; set; }
+    }
+
+    public class Element
+    {
+        public string id { get; set; }
+        public string? name { get; set; }
+        public string? type { get; set; }
+        public string? description { get; set; }
+        
+        public List<Reference> referenced { get; set; } = new List<Reference>();
+        public List<Reference> references { get; set; } = new List<Reference>();
+    }
+    public class Reference
+    {
+        public string id { get; set; }
+        public string? name { get; set; }
+        public string? type { get; set; }
+        public string? description { get; set; }
+        public Element sourceElement { get; set; }
+        public Element targetElement { get; set; }
+    }
+
+    private Task SelectElement(Element element)
+    {
+        Console.WriteLine(element.name);
+        selectedElement = element;
+        StateHasChanged();
+        return Task.CompletedTask;
+        
+    }
+
+}
