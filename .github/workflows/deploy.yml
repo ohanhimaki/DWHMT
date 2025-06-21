@@ -24,7 +24,7 @@ jobs:
         run: |
             ls
             cd ./DataWarehouseModelingTool/DataWarehouseModelingTool.Web
-            dotnet publish -c Release -o ../../release /p:BasePath=/DWHMT/
+            dotnet publish -c Release -o ../../release /p:AppBasePath=/DWHMT/
 
       - name: Fix Blazor integrity issues
         run: |
