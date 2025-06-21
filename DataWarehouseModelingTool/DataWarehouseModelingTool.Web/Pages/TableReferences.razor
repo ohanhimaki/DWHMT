@@ -7,6 +7,9 @@
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" @onclick="ProcessPastedData">Process Data</MudButton>
 
+<MudTextField Label="Paste Extra Dimension Attributes Here" @bind-Value="extraAttributesData" Variant="Variant.Outlined" Margin="Margin.Normal" Lines="5" HelperText="Paste data with format: ID, Type, Category, Name (separated by tabs)" />
+
+<MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-2" @onclick="ProcessExtraAttributesData">Process Extra Attributes</MudButton>
 @if (elements.Count > 0)
 {
 
@@ -23,10 +26,10 @@
         <MudGrid>
             <MudItem xs="4">
                 <MudText Typo="Typo.h6">References</MudText>
-                <MudList T="Reference" SelectedValueChanged="@((x) => SelectElement(x.targetElement) )" >
+                <MudList T="Reference"  >
                     @foreach (var reference in selectedElement.references)
                     {
-                        <MudListItem Text="@reference.name" Value="@reference"/>
+                        <MudListItem OnClick="() => SelectElement(reference.targetElement)" Text="@reference.targetElement.name" Value="@reference"/>
                         
                     }
                 </MudList>
@@ -41,10 +44,10 @@
             </MudItem>
             <MudItem xs="4">
                 <MudText Typo="Typo.h6">Referenced By</MudText>
-                <MudList T="Reference" SelectedValueChanged="@((x) => SelectElement(x.sourceElement) )" >
+                <MudList T="Reference"  >
                     @foreach (var referenced in selectedElement.referenced)
                     {
-                        <MudListItem Text="@referenced.name" Value="@referenced"/>
+                        <MudListItem OnClick="() => SelectElement(referenced.sourceElement)" Text="@referenced.sourceElement.name" Value="@referenced"/>
                     }
                 </MudList>
             </MudItem>
@@ -54,8 +57,9 @@
 
 @code {
     private string pastedData;
-    
-    private List<Element> elements = new();
+private string extraAttributesData;
+
+private List<Element> elements = new();
     private Element? selectedElement;
     private void ProcessPastedData()
     {
@@ -123,6 +127,28 @@
         
     }
 
+    private void ProcessExtraAttributesData()
+    {
+        if (!string.IsNullOrWhiteSpace(extraAttributesData))
+        {
+            var rows = extraAttributesData.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var row in rows)
+            {
+                var columns = row.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (columns.Length >= 4)
+                {
+                    var element = elements.FirstOrDefault(e => e.id == columns[0].Trim());
+                    if (element != null)
+                    {
+                        element.type = columns[1].Trim();
+                        element.category = columns[2].Trim();
+                        element.name = columns[3].Trim();
+                    }
+                }
+            }
+        }
+    }
+
     private class TableReference
     {
         public string Column1 { get; set; }
@@ -135,8 +161,9 @@
         public string? name { get; set; }
         public string? type { get; set; }
         public string? description { get; set; }
-        
-        public List<Reference> referenced { get; set; } = new List<Reference>();
+    public string? category { get; set; }
+
+    public List<Reference> referenced { get; set; } = new List<Reference>();
         public List<Reference> references { get; set; } = new List<Reference>();
     }
     public class Reference
