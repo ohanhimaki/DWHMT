@@ -7,6 +7,11 @@
 @using DataWarehouseModelingTool
 @using MudBlazor
 
+@inject IConfiguration Config
+<HeadContent>
+
+    <base href="/@(Config.GetValue<string>("AppBasePath"))" />
+</HeadContent>
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
