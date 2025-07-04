@@ -1,21 +1,27 @@
 ﻿@page "/TableReferences"
 @using MudBlazor
+@using System.Text.Json.Serialization
+@inject TableReferenceService TableReferenceService
+@implements IDisposable
 
-<MudText Typo="Typo.h3" GutterBottom="true">Table References</MudText>
+<MudExpansionPanel Text="Panel One" MaxHeight="300" Style="@($"background:{Theme.PaletteLight.GrayLighter};")" Expanded="dataInputExpanded">
 
-<MudTextField Label="Paste Data Here" @bind-Value="pastedData" Variant="Variant.Outlined" Margin="Margin.Normal" Lines="5" HelperText="Paste data from Excel (2 columns separated by tabs)" />
+    <MudText Typo="Typo.h3" GutterBottom="true">Table References</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" @onclick="ProcessPastedData">Process Data</MudButton>
+    <MudTextField Label="Paste Data Here" @bind-Value="pastedData" Variant="Variant.Outlined" Margin="Margin.Normal" Lines="5" HelperText="Paste data with format: element id, reference element id" />
 
-<MudTextField Label="Paste Extra Dimension Attributes Here" @bind-Value="extraAttributesData" Variant="Variant.Outlined" Margin="Margin.Normal" Lines="5" HelperText="Paste data with format: ID, Type, Category, Name (separated by tabs)" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" @onclick="ProcessPastedData">Process Data</MudButton>
 
-<MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-2" @onclick="ProcessExtraAttributesData">Process Extra Attributes</MudButton>
-@if (elements.Count > 0)
+    <MudTextField Label="Paste Extra Dimension Attributes Here" @bind-Value="extraAttributesData" Variant="Variant.Outlined" Margin="Margin.Normal" Lines="5" HelperText="Paste data with format: ID, Type, Category, Name (separated by tabs)" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-2" @onclick="ProcessExtraAttributesData">Process Extra Attributes</MudButton>
+
+</MudExpansionPanel>
+
+@if (TableReferenceService.elements.Count > 0)
 {
-
-
     <MudSelect T="Element" Label="Select Element" @bind-Value="selectedElement" Variant="Variant.Outlined" Margin="Margin.Normal">
-        @foreach (var element in elements)
+        @foreach (var element in TableReferenceService.elements)
         {
             <MudSelectItem T="Element" Value="@element">@element.name</MudSelectItem>
         }
@@ -23,45 +29,73 @@
 
     @if (selectedElement != null)
     {
-        <MudGrid>
-            <MudItem xs="4">
-                <MudText Typo="Typo.h6">References</MudText>
-                <MudList T="Reference"  >
-                    @foreach (var reference in selectedElement.references)
-                    {
-                        <MudListItem OnClick="() => SelectElement(reference.targetElement)" Text="@reference.targetElement.name" Value="@reference"/>
-                        
-                    }
-                </MudList>
-            </MudItem>
-            <MudItem xs="4">
-                <MudText Typo="Typo.h6">Selected Element</MudText>
-                <MudList T="string">
-                    <MudListItem>
-                        <MudText>@selectedElement.name</MudText>
-                    </MudListItem>
-                </MudList>
-            </MudItem>
-            <MudItem xs="4">
-                <MudText Typo="Typo.h6">Referenced By</MudText>
-                <MudList T="Reference"  >
-                    @foreach (var referenced in selectedElement.referenced)
-                    {
-                        <MudListItem OnClick="() => SelectElement(referenced.sourceElement)" Text="@referenced.sourceElement.name" Value="@referenced"/>
-                    }
-                </MudList>
-            </MudItem>
-        </MudGrid>
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" HideSlider="true">
+            <MudTabPanel Text="Basic">
+                <MudGrid>
+                    <MudItem xs="4">
+                        <MudText Typo="Typo.h6">References</MudText>
+                        <MudList T="Reference"  >
+                            @foreach (var reference in selectedElement.references)
+                            {
+                                <MudListItem OnClick="() => SelectElement(reference.targetElement)" Text="@reference.targetElement.name" Value="@reference"/>
+                            }
+                        </MudList>
+                    </MudItem>
+                    <MudItem xs="4">
+                        <MudText Typo="Typo.h6">Selected Element</MudText>
+                        <MudList T="string">
+                            <MudText>@selectedElement.name</MudText>                        
+                        </MudList>
+                    </MudItem>             
+                    <MudItem xs="4">
+                        <MudText Typo="Typo.h6">Referenced By</MudText>
+                        <MudList T="Reference"  >
+                            @foreach (var referenced in selectedElement.referenced)
+                            {
+                                <MudListItem OnClick="() => SelectElement(referenced.sourceElement)" Text="@referenced.sourceElement.name" Value="@referenced"/>
+                            }
+                        </MudList>
+                    </MudItem>
+
+                </MudGrid>
+            </MudTabPanel>
+            <MudTabPanel Text="Recursive references">
+                <div class="diagram-container">
+                    <HierarchyTree Elements="TableReferenceService.elements" ElementsToRender="new List<Element>(){selectedElement}" />
+                </div>
+            </MudTabPanel>
+            <MudTabPanel Text="Recursive referenced">
+                <div class="diagram-container">
+                    <HierarchyTree Elements="TableReferenceService.elements" ElementsToRender="new List<Element>(){selectedElement}"
+                                   NextStep="item => item.references.Select(y => y.targetElement).Distinct().ToList()" />
+                </div>
+            </MudTabPanel>
+
+        </MudTabs>
     }
+
 }
-
 @code {
+    bool show = false;
     private string pastedData;
-private string extraAttributesData;
+    private string extraAttributesData;
 
-private List<Element> elements = new();
     private Element? selectedElement;
-    private void ProcessPastedData()
+    private bool dataInputExpanded = true;
+    private MudTheme Theme = new MudTheme();
+
+    protected override async Task OnInitializedAsync()
+    {
+        TableReferenceService.OnChange += StateHasChanged;
+
+    }
+
+    public void Dispose()
+    {
+        TableReferenceService.OnChange -= StateHasChanged;
+    }
+
+    private async Task ProcessPastedData()
     {
         List<TableReference> parsedData = new List<TableReference>();
         if (!string.IsNullOrWhiteSpace(pastedData))
@@ -83,10 +117,10 @@ private List<Element> elements = new();
         var uniqueElements = parsedData.Select(x => x.Column1).Concat(parsedData.Select(x => x.Column2))
             .Distinct().ToList();
 
-        elements.Clear();
+        TableReferenceService.elements.Clear();
         foreach (var element in uniqueElements)
         {
-            elements.Add(new Element
+            TableReferenceService.elements.Add(new Element
             {
                 id = element,
                 name = element,
@@ -98,8 +132,9 @@ private List<Element> elements = new();
         }
         foreach (var refItem in parsedData)
         {
-            var sourceElement = elements.FirstOrDefault(e => e.id == refItem.Column1);
-            var targetElement = elements.FirstOrDefault(e => e.id == refItem.Column2);
+            var sourceElement = TableReferenceService.elements.FirstOrDefault(e => e.id == refItem.Column1);
+            var targetElement = TableReferenceService.elements.FirstOrDefault(e => e.id == refItem.Column2);
+            targetElement.parents.Add(sourceElement.id);
 
             if (sourceElement != null && targetElement != null)
             {
@@ -124,7 +159,17 @@ private List<Element> elements = new();
                 });
             }
         }
-        
+        //Save elements list to localstorage
+
+        await OpenCreateTargetTableDialog();
+
+        dataInputExpanded = false;
+    }
+
+    private async Task OpenCreateTargetTableDialog()
+    {
+        await TableReferenceService.SaveData();
+        StateHasChanged();
     }
 
     private void ProcessExtraAttributesData()
@@ -137,7 +182,7 @@ private List<Element> elements = new();
                 var columns = row.Split(new[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
                 if (columns.Length >= 4)
                 {
-                    var element = elements.FirstOrDefault(e => e.id == columns[0].Trim());
+                    var element = TableReferenceService.elements.FirstOrDefault(e => e.id == columns[0].Trim());
                     if (element != null)
                     {
                         element.type = columns[1].Trim();
@@ -147,6 +192,8 @@ private List<Element> elements = new();
                 }
             }
         }
+
+
     }
 
     private class TableReference
@@ -161,10 +208,16 @@ private List<Element> elements = new();
         public string? name { get; set; }
         public string? type { get; set; }
         public string? description { get; set; }
-    public string? category { get; set; }
+        public string? category { get; set; }
 
-    public List<Reference> referenced { get; set; } = new List<Reference>();
+        [JsonIgnore]
+        public List<Reference> referenced { get; set; } = new List<Reference>();
+
+        [JsonIgnore]
         public List<Reference> references { get; set; } = new List<Reference>();
+
+        public List<string> parents { get; set; } = new List<string>();
+
     }
     public class Reference
     {
@@ -178,11 +231,11 @@ private List<Element> elements = new();
 
     private Task SelectElement(Element element)
     {
-        Console.WriteLine(element.name);
+
+        //Console.WriteLine(TableReferenceService.CheckIfLocalStorageIsEmpty().Result);
         selectedElement = element;
         StateHasChanged();
         return Task.CompletedTask;
-        
     }
 
 }

@@ -1,0 +1,187 @@
+﻿@using static DataWarehouseModelingTool.Web.Pages.TableReferences
+<style>
+    /* --- General Container and Reset --- */
+    .diagram-container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    border-radius: 8px; /* Rounded corners */
+    background-color: #2222; /* White background for the whole diagram area */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the entire diagram */
+    }
+
+    /* --- Node Styling (The Boxes Themselves) --- */
+    .diagram-node-content {
+    border: 1px solid #5b9bd5; /* Blue border as in the image */
+    border-radius: 8px; /* Rounded corners */
+    padding: 15px 25px; /* Ample padding inside the boxes */
+    background-color: #f0f8ff; /* Light blue background for nodes */
+    text-align: center;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap; /* Prevent text wrapping if possible */
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    flex-shrink: 0; /* Prevent content boxes from shrinking too much */
+    }
+
+    .diagram-node-content.large-node {
+    background-color: #3333; /* Light blue background for nodes */
+    width: 80%; /* Make top-level parents wider */
+    max-width: 600px; /* Limit max width */
+    margin: 0 auto 10px auto; /* Center top node and add space below */
+    padding: 30px 40px; /* Larger padding for the top node */
+    font-size: 1.2em;
+    }
+
+    /* --- Parent Node Wrapper (for vertical stacking of self and its children's frame) --- */
+    .diagram-parent-node {
+    display: flex;
+    flex-direction: column; /* Stack node content and its children frame vertically */
+    align-items: center; /* Center horizontally within its parent flex item */
+    /* Only add margin-bottom if it's a top-level parent or a sibling that needs spacing */
+    margin-bottom: 20px; /* Space between different top-level parents, or between a node and its next sibling container */
+    }
+
+    /* Ensure no margin-bottom for a node that's the last in its row, but has children */
+    .diagram-children-group > .diagram-parent-node:last-child {
+    margin-bottom: 0;
+    }
+
+    /* --- Children Frame (The Outer Rounded Border enclosing a group of children) --- */
+    .diagram-children-frame {
+    border: 2px solid #5b9bd5; /* Blue border for the frame */
+    border-radius: 12px; /* More rounded corners for the frame */
+    padding: 5px 10px; /* Padding inside the frame */
+    margin-top: 5px; /* Space between parent node and its children frame */
+    margin-bottom: 5px; /* Space between parent node and its children frame */
+    background-color: #ffffff; /* White background for the frame */
+    width: 100%; /* Take full width of its parent diagram-parent-node */
+    box-sizing: border-box; /* Include padding and border in width */
+    display: flex; /* Make it a flex container to allow centering of children group */
+    justify-content: center; /* Center the children group within the frame */
+    align-items: flex-start; /* Align children group to the top */
+    flex-grow: 1; /* Allow the frame to grow if needed to fill space */
+    box-shadow: 10px 10px 5px #3333;
+    }
+
+    /* --- Children Group (Horizontal arrangement within the frame) --- */
+    .diagram-children-group {
+    display: flex; /* Arranges children horizontally */
+    flex-wrap: wrap; /* Allows children to wrap to the next line if too many */
+    gap: 10px; /* Space between horizontal children */
+    justify-content: center; /* Center children if they don't fill the row */
+    align-items: flex-start; /* Align items to the top if they have different heights (less likely here) */
+    width: 100%; /* Take full width of the frame's content area */
+    }
+
+    /* --- Specific styling for nodes directly inside diagram-children-group (i.e., immediate children) --- */
+    .diagram-children-group > .diagram-parent-node {
+    margin-bottom: 0; /* Override the default margin-bottom from .diagram-parent-node if it's a direct child in a horizontal group */
+    }
+
+    .diagram-children-group > .diagram-parent-node > .diagram-node-content {
+    padding: 10px 20px; /* Smaller padding for these nodes */
+    font-size: 0.9em;
+    min-width: 120px; /* Ensure some minimum width */
+    }
+
+    /* --- Specific styling for nodes further nested (grandchildren, etc.) --- */
+    .diagram-children-group .diagram-children-group > .diagram-parent-node > .diagram-node-content {
+    padding: 8px 15px; /* Even smaller padding for deeper levels */
+    font-size: 0.8em;
+    min-width: 80px;
+    }
+</style>
+@foreach (var item in ElementsToRender)
+{
+    <div class="diagram-parent-node">
+        <div class="diagram-node-content @(loop == 0 ? "large-node" : "")">
+            lvl @loop: @item.name
+        </div>
+
+        @if (loop < 10)
+        {
+            var referencedBy = NextStep(item);
+
+                if (referencedBy.Any())
+                {
+                    <div class="diagram-children-frame">
+                        <div class="diagram-children-group">
+                            <HierarchyTree loop="loop + 1" Elements="Elements" ElementsToRender="referencedBy" NextStep="NextStep"/>
+    
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+}
+
+@code {
+	[Parameter]
+	public List<Element> Elements { get; set; }
+
+	[Parameter]
+	public List<Element> ElementsToRender { get; set; }
+
+	[Parameter]
+	public int loop { get; set; } = 0;
+
+    [Parameter]
+    public Func<Element, List<Element>> NextStep { get; set; } = item => item.referenced.Select(y => y.sourceElement).Distinct().ToList();
+
+
+	public string? RenderElements()
+	{
+		foreach (var referenced in ElementsToRender)
+		{
+			//var referencedTest = referenced;
+			//Console.WriteLine(referenced.name);
+			return referenced.name;
+
+
+			/*
+			foreach (var nextElement in referenced.referenced)
+			{
+			//<MudText Style="text-indent: 50px">Child</MudText>
+			<MudListItem Style="text-indent: 50px" Text="@nextElement.name" />
+			//Console.WriteLine(nextElement.sourceElement.referenced[0].name);
+				foreach (var elementAfterThat in nextElement.sourceElement.referenced)
+				{
+				//<MudText Style="text-indent: 50px">Child</MudText>
+				<MudListItem Style="text-indent: 100px" Text="@elementAfterThat.name" />
+				//Console.WriteLine(nextElement.sourceElement.referenced[0].name);
+					}
+				}
+			*/
+		//Console.WriteLine(referenced.name);
+	}
+		return "";
+	}
+
+	private void moveThroughElementNodes(Element? elementNode, int i)
+	{
+		foreach (Reference? childElement in elementNode.referenced)
+		{
+
+			if (childElement.sourceElement.referenced.Count() > 0)
+			{
+				//listBox1.Items.Add(child.Parent); //Do what you want to do with the nodes here
+				Console.WriteLine("Node " + i + ": " + childElement.name);
+				i++;
+				moveThroughElementNodes(childElement.sourceElement, i);
+				
+			}
+			else
+			{
+				//listBox1.Items.Add(child.Parent); // And here
+				
+				Console.WriteLine("Last Node: " + childElement.name);
+
+
+			}
+			i = 0;
+		}
+	}
+
+}

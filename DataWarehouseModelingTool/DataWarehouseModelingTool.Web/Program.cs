@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using DataWarehouseModelingTool.Web;
 using MudBlazor.Services;
+using DataWarehouseModelingTool.Web.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped<AppStateService>();
+builder.Services.AddScoped<TableReferenceService>();
 builder.Services.AddBlazoredLocalStorage();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

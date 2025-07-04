@@ -12,6 +12,8 @@ public class AppStateData
     public List<ReportDefinition> ReportDefinitions { get; set; } = new List<ReportDefinition>();
     public List<TargetTableRelationship> TargetTableRelationships { get; set; } = new List<TargetTableRelationship>();
 }
+
+
 public class AppStateService : AppStateData
 {
     private readonly ILocalStorageService _localStorage;
