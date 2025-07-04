@@ -1,0 +1,100 @@
+﻿@using static DataWarehouseModelingTool.Web.Pages.TableReferences
+<h3>@loop</h3>
+<MudList T="Reference">
+
+	<MudText>@RenderElements()</MudText>
+	<MudText Style="text-indent: 50px">@RenderElements()</MudText>
+</MudList>
+@{
+	if (loop < 10) 
+	{
+		var referencedBy = ElementsToRender.SelectMany(x => x.referenced.Select(y => y.sourceElement)).Distinct().ToList();
+		int i = 0;
+		moveThroughElementNodes(referencedBy[0], i);
+		<RecursiveHierarchy loop="loop+1" Elements="Elements" ElementsToRender="referencedBy" />
+		//Console.WriteLine(referencedBy[0].name + " Child of? " + referencedBy[0].referenced[0].name);
+		//Console.WriteLine(referencedBy[0].references[0].name);
+		/*
+		@foreach (var element in referencedBy)
+				{
+			Console.WriteLine("Parent Element: " + element.name);
+			//Console.WriteLine(element.referenced.First().name);
+
+			foreach (var nextElement in element.referenced)
+			{
+				Console.WriteLine("Child Element: " + nextElement.name);
+				}
+			Console.WriteLine("--------");
+
+			}
+		*/
+
+	}
+
+}
+
+@code {
+	[Parameter]
+	public List<Element> Elements { get; set; }
+
+	[Parameter]
+	public List<Element> ElementsToRender { get; set; }
+
+	[Parameter]
+	public int loop { get; set; } = 0;
+
+
+	public string? RenderElements()
+	{
+		foreach (var referenced in ElementsToRender)
+		{
+			//var referencedTest = referenced;
+			//Console.WriteLine(referenced.name);
+			return referenced.name;
+
+
+			/*
+			foreach (var nextElement in referenced.referenced)
+			{
+			//<MudText Style="text-indent: 50px">Child</MudText>
+			<MudListItem Style="text-indent: 50px" Text="@nextElement.name" />
+			//Console.WriteLine(nextElement.sourceElement.referenced[0].name);
+				foreach (var elementAfterThat in nextElement.sourceElement.referenced)
+				{
+				//<MudText Style="text-indent: 50px">Child</MudText>
+				<MudListItem Style="text-indent: 100px" Text="@elementAfterThat.name" />
+				//Console.WriteLine(nextElement.sourceElement.referenced[0].name);
+					}
+				}
+			*/
+		//Console.WriteLine(referenced.name);
+	}
+		return "";
+	}
+
+	private void moveThroughElementNodes(Element? elementNode, int i)
+	{
+		foreach (Reference? childElement in elementNode.referenced)
+		{
+
+			if (childElement.sourceElement.referenced.Count() > 0)
+			{
+				//listBox1.Items.Add(child.Parent); //Do what you want to do with the nodes here
+				Console.WriteLine("Node " + i + ": " + childElement.name);
+				i++;
+				moveThroughElementNodes(childElement.sourceElement, i);
+				
+			}
+			else
+			{
+				//listBox1.Items.Add(child.Parent); // And here
+				
+				Console.WriteLine("Last Node: " + childElement.name);
+
+
+			}
+			i = 0;
+		}
+	}
+
+}
